@@ -6,6 +6,7 @@ export type ProjectSummary = EventPayloadMap["project.registered"];
 export type AgentSummary = EventPayloadMap["codex.agent.progress"];
 export type ConversationMessage = EventPayloadMap["conversation.message.added"];
 export type ApprovalSummary = EventPayloadMap["approval.requested"];
+export type RouteSummary = EventPayloadMap["conversation.route.selected"];
 
 export interface HudState {
   mode: JarvisMode;
@@ -17,6 +18,7 @@ export interface HudState {
   approval?: ApprovalSummary;
   telemetry?: Telemetry;
   activity: string[];
+  lastRoute?: RouteSummary;
 }
 
 export const initialHudState: HudState = {
@@ -112,6 +114,15 @@ export function reduceHudEvent(
       return {
         ...state,
         messages: [...state.messages, event.payload].slice(-100),
+      };
+    case "conversation.route.selected":
+      return {
+        ...state,
+        lastRoute: event.payload,
+        activity: appendActivity(
+          state,
+          `Routed to ${event.payload.route} (${String(Math.round(event.payload.confidence * 100))}%)`,
+        ),
       };
     case "project.registered":
       return {

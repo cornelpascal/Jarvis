@@ -41,6 +41,12 @@ The deck implements `SOURCES`, `IMAGES`, `VIDEO`, `WEB`, `CODE_DIFF`, `DOCUMENT`
 
 Server VAD creates responses and enables response interruption. Data-channel events map to typed `voice.*` events and durable transcript messages; the HUD never infers listening/speaking state from transcript text. Unexpected peer loss has a bounded two-attempt reconnect. Explicit **END VOICE** stops tracks and the peer, so V1 has no always-listening cloud microphone.
 
+## Phase 5 orchestrator and tool routing
+
+`IntentRouter` accepts only a validated user-origin request with optional active project/task context. It scores route-specific language features, context evidence, and a conversation baseline, returning a ranked route decision with confidence, clarification flag, reasons, and a bounded 3–8 tool shortlist. Explicit action routes receive context-sensitive precedence over project-knowledge matches. The shortlist always contains `tool.search` as a safe discovery escape hatch, avoiding injection of the entire future tool catalogue.
+
+The authenticated `POST /commands/route` boundary records the user message and publishes `conversation.route.selected`; completed user voice transcripts enter the same router. Routing is selection only: decisions contain no arguments, approval, receipt, or executor capability. Phase 5 deliberately does not execute the selected research/project/coding/browser/system route. The HUD text composer and current-route readout are projections of these real decisions.
+
 ## Architectural principles
 
 1. The Node/TypeScript core owns business rules and authoritative state.
@@ -134,6 +140,7 @@ The service binds to `127.0.0.1` by default. Phase 0 will make the port typed/co
 - `WS /events` — authenticated validated event stream (replay is added in Phase 1);
 - `POST /voice/call` — authenticated bounded SDP call creation;
 - `POST /voice/events` — authenticated strict voice lifecycle/transcript input;
+- `POST /commands/route` — authenticated strict user intent classification;
 - `/v1/commands/*` — future typed, narrowly scoped dashboard commands.
 
 LAN binding is disabled by default and is not part of Phase 0.

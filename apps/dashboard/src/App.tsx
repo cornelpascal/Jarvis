@@ -4,7 +4,9 @@ import type {
   KnownJarvisEvent,
   VoiceRuntimeState,
 } from "@jarvis/protocol";
+import { routeDecisionSchema } from "@jarvis/protocol";
 import { connectCore, type ConnectionState } from "./core-client";
+import { coreRequest } from "./core-client";
 import { DisplaySettings } from "./DisplaySettings";
 import {
   createDisplayProvider,
@@ -41,6 +43,8 @@ export function App() {
   const [showInspector, setShowInspector] = useState(false);
   const [showDisplays, setShowDisplays] = useState(false);
   const [displayCount, setDisplayCount] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const voice = useMemo(() => new OpenAiWebRtcVoiceProvider(), []);
   const [voiceState, setVoiceState] = useState<VoiceRuntimeState>(
     voice.state(),
@@ -57,6 +61,37 @@ export function App() {
       );
     }
   }, [voice]);
+
+  const submitText = useCallback(async (): Promise<void> => {
+    const text = draft.trim();
+    if (!text || submitting) return;
+    setSubmitting(true);
+    try {
+      const response = await coreRequest("/commands/route", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          requestId: crypto.randomUUID(),
+          text,
+          ...(hud.selectedProjectId
+            ? { activeProjectId: hud.selectedProjectId }
+            : {}),
+          provenance: { origin: "user", trusted: true },
+        }),
+      });
+      if (!response.ok)
+        throw new Error(`Request routing failed (${String(response.status)})`);
+      routeDecisionSchema.parse(await response.json());
+      setDraft("");
+      setError(undefined);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Request routing failed",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }, [draft, hud.selectedProjectId, submitting]);
 
   useEffect(() => {
     const cleanup = connectCore({
@@ -269,6 +304,24 @@ export function App() {
                 <p>{hud.approval.reason}</p>
               </div>
             ) : null}
+            <form
+              className="conversation-composer"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitText();
+              }}
+            >
+              <input
+                aria-label="Message JARVIS"
+                disabled={connection !== "connected" || submitting}
+                onChange={(event) => setDraft(event.target.value)}
+                placeholder="TYPE A REQUEST…"
+                value={draft}
+              />
+              <button disabled={!draft.trim() || submitting} type="submit">
+                {submitting ? "ROUTING" : "SEND"}
+              </button>
+            </form>
           </section>
           <section className="panel context-panel">
             <div className="panel-heading">
@@ -286,6 +339,10 @@ export function App() {
               <div>
                 <dt>EVENTS</dt>
                 <dd>{events.length}</dd>
+              </div>
+              <div>
+                <dt>ROUTE</dt>
+                <dd>{hud.lastRoute?.route.toUpperCase() ?? "NONE"}</dd>
               </div>
               <div>
                 <dt>DISPLAYS</dt>

@@ -128,4 +128,25 @@ describe("HUD state projection", () => {
     expect(state.mode).toBe("LISTENING");
     expect(state.modeReason).toBe("Response interrupted");
   });
+
+  it("shows structured route decisions as activity, not authorization", () => {
+    const state = reduceHudEvent(
+      initialHudState,
+      event(
+        "conversation.route.selected",
+        {
+          requestId: "7cb5ddae-a2f8-46af-b45a-8a2056dc3617",
+          route: "coding",
+          confidence: 0.82,
+          candidates: [{ route: "coding", score: 0.82 }],
+          toolShortlist: ["codex.create_task", "codex.status", "tool.search"],
+          reasons: ["code modification intent"],
+          requiresClarification: false,
+        },
+        0,
+      ),
+    );
+    expect(state.lastRoute?.route).toBe("coding");
+    expect(state.mode).toBe("IDLE");
+  });
 });

@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 4 — DONE**
-Next phase: **Phase 5 — NOT_STARTED**
+Current phase: **Phase 5 — DONE**
+Next phase: **Phase 6 — NOT_STARTED**
 
 ## Status definitions
 
@@ -38,7 +38,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 2 — Functional HUD                   | DONE        | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
 | 3 — Multi-monitor Reference Deck     | DONE        | Display discovery, persisted placement, second window/fallback                    |
 | 4 — Alt+Space + voice                | DONE        | Windows activation and provider-based spoken conversation                         |
-| 5 — Orchestrator/tool router         | NOT_STARTED | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
+| 5 — Orchestrator/tool router         | DONE        | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
 | 6 — Web research                     | NOT_STARTED | Fresh structured research with sources and streamed events                        |
 | 7 — Smart References                 | NOT_STARTED | Independent visual-value evaluator and asynchronous rendering                     |
 | 8 — Browser Agent                    | NOT_STARTED | Isolated Playwright Chromium and typed browser actions                            |
@@ -121,12 +121,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 5 — Orchestrator / tool router
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Typed tool catalogue, route classifier, deterministic constraints, 3–8 shortlist, safe `tool.search` expansion, confidence/ambiguity handling, conversation/research/project/coding/browser/system routes.
 - **Dependencies:** Event bus, provider contracts, conversation input; tool stubs/mocks.
 - **Acceptance:** Representative requests route correctly without keyword-only logic; unknown/ambiguous routes fail safely; catalogue size does not flood prompts; selection does not authorize execution.
 - **Tests:** Golden route dataset, adversarial/ambiguous cases, tool shortlist bounds, expansion escape hatch, latency/fallback, injection-shaped input, no-tool conversation cases.
-- **Known risks:** Misrouting, classifier nondeterminism, missed tools, context-dependent pronouns, category growth.
+- **Evidence:** 37 unit/integration tests pass, including the six required route families plus Git/deployment/memory, active project/task evidence, injection-shaped input, 3–8 shortlist bounds, safe discovery, no authorization fields, authenticated HTTP routing, voice transcript routing, and HUD projection. Format/lint/typecheck/build and native smoke remain green.
+- **Known limitations:** The deterministic scorer is intentionally the offline baseline; later LLM classification can supplement it behind the same schema, but must retain deterministic constraints and evaluation fixtures. Pronoun resolution currently uses explicit active project/task IDs only. Phase 5 selects tools but does not execute them.
 
 ### Phase 6 — Web research
 

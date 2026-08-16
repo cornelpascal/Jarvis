@@ -129,6 +129,42 @@ export const eventPayloadSchemas = {
       .array(z.strictObject({ title: z.string().min(1), url: z.url() }))
       .default([]),
   }),
+  "conversation.route.selected": z.strictObject({
+    requestId: z.uuid(),
+    route: z.enum([
+      "conversation",
+      "research",
+      "project",
+      "coding",
+      "browser",
+      "system",
+      "git",
+      "deployment",
+      "reference",
+      "memory",
+    ]),
+    confidence: z.number().min(0).max(1),
+    candidates: z.array(
+      z.strictObject({
+        route: z.enum([
+          "conversation",
+          "research",
+          "project",
+          "coding",
+          "browser",
+          "system",
+          "git",
+          "deployment",
+          "reference",
+          "memory",
+        ]),
+        score: z.number().min(0).max(1),
+      }),
+    ),
+    toolShortlist: z.array(z.string().min(1)).min(3).max(8),
+    reasons: z.array(z.string().min(1)),
+    requiresClarification: z.boolean(),
+  }),
   "project.registered": z.strictObject({
     projectId: z.string().min(1),
     name: z.string().min(1),

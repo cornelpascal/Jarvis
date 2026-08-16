@@ -240,5 +240,24 @@ describe("core event stream", () => {
       type: "voice.listening",
       payload: { provider: "openai-realtime", muted: false },
     });
+
+    const route = await fetch(
+      `http://127.0.0.1:${String(port)}/commands/route`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          origin: "http://127.0.0.1:1420",
+        },
+        body: JSON.stringify({
+          requestId: "7cb5ddae-a2f8-46af-b45a-8a2056dc3617",
+          text: "What's new with humanoid robots today?",
+          provenance: { origin: "user", trusted: true },
+        }),
+      },
+    );
+    expect(route.status).toBe(200);
+    await expect(route.json()).resolves.toMatchObject({ route: "research" });
   });
 });

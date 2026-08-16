@@ -1,6 +1,6 @@
 # Event protocol
 
-Status: Phase 4
+Status: Phase 5
 Last updated: 2026-08-17
 
 JARVIS state crosses process boundaries only through registered, runtime-validated events. The dashboard never parses assistant prose to infer system state.
@@ -9,7 +9,7 @@ JARVIS state crosses process boundaries only through registered, runtime-validat
 
 Every event contains a UUID, global sequence, ISO timestamp, registered namespaced type, source, schema version, payload, and optional session/correlation/causation/task/project identifiers. `packages/protocol/src/events.ts` is the authoritative registry. A new event type is unusable until its payload schema is registered there.
 
-Current types through Phase 4:
+Current types through Phase 5:
 
 | Type                                      | Purpose                                     | Durability           |
 | ----------------------------------------- | ------------------------------------------- | -------------------- |
@@ -19,6 +19,7 @@ Current types through Phase 4:
 | `system.health`                           | Structured core/database health snapshot    | Durable              |
 | `system.telemetry`                        | CPU/RAM/disk/network/provider readings      | Transient            |
 | `conversation.message.added`              | User-facing conversation projection         | Durable when emitted |
+| `conversation.route.selected`             | Ranked route/tool shortlist, not permission | Durable              |
 | `project.registered`, `project.selected`  | Project-panel projection contracts          | Durable when emitted |
 | `codex.agent.progress`                    | Active-agent projection contract            | Durable when emitted |
 | `approval.requested`                      | Approval-surface projection contract        | Durable when emitted |

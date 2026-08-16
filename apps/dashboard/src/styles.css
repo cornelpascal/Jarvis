@@ -494,6 +494,38 @@ body {
   color: #a79062;
   font-size: 10px;
 }
+.conversation-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgb(69 220 255 / 10%);
+}
+.conversation-composer input {
+  min-width: 0;
+  border: 1px solid #16404c;
+  padding: 9px 10px;
+  color: #c7edf4;
+  background: rgb(3 16 21 / 90%);
+  font-size: 10px;
+  outline: none;
+}
+.conversation-composer input:focus {
+  border-color: #2d9db8;
+  box-shadow: 0 0 18px rgb(69 220 255 / 10%);
+}
+.conversation-composer button {
+  border: 1px solid #246175;
+  color: var(--cyan);
+  background: rgb(18 57 69 / 28%);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+.conversation-composer button:disabled,
+.conversation-composer input:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
 .context-panel {
   padding-bottom: 8px;
 }

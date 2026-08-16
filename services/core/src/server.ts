@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import {
   createServer,
   type IncomingMessage,
@@ -15,13 +15,17 @@ import {
   MAX_REPLAY_LIMIT,
   PROTOCOL_VERSION,
   eventStreamSubscribeSchema,
+  routeRequestSchema,
   voiceClientSignalSchema,
   type CapabilityManifest,
   type EventStreamServerMessage,
   type HealthSnapshot,
+  type RouteDecision,
+  type RouteRequest,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
 import { RealtimeGatewayError, type RealtimeCallGateway } from "@jarvis/voice";
+import { IntentRouter } from "./orchestrator.js";
 
 const MAX_BUFFERED_BYTES = 512 * 1024;
 const SUBSCRIBE_TIMEOUT_MS = 5_000;
@@ -127,6 +131,7 @@ async function readBody(
 async function publishVoiceSignal(
   bus: LocalEventBus,
   signal: VoiceClientSignal,
+  router: IntentRouter,
 ): Promise<void> {
   const provider = "openai-realtime";
   switch (signal.type) {
@@ -201,7 +206,25 @@ async function publishVoiceSignal(
           citations: [],
         }),
       );
+      if (signal.role === "user")
+        await publishRouteDecision(bus, router, {
+          requestId: randomUUID(),
+          text: signal.content,
+          provenance: { origin: "user", trusted: true },
+        });
   }
+}
+
+async function publishRouteDecision(
+  bus: LocalEventBus,
+  router: IntentRouter,
+  request: RouteRequest,
+): Promise<RouteDecision> {
+  const decision = router.route(request);
+  await bus.publish(
+    bus.create("conversation.route.selected", "core.orchestrator", decision),
+  );
+  return decision;
 }
 
 function sendStreamMessage(
@@ -225,6 +248,7 @@ function decodeRawData(raw: RawData): string {
 
 export function createCoreServer(options: CoreServerOptions): CoreServer {
   const logger = new Logger("core-server");
+  const router = new IntentRouter();
   const startedAt = new Date();
   const clients = new Map<WebSocket, ClientState>();
   const health = (): HealthSnapshot => ({
@@ -249,6 +273,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         "event-replay",
         "voice-webrtc",
         "voice-events",
+        "request-routing",
       ],
       platform: process.platform,
       providers: { voice: voice.status },
@@ -284,7 +309,9 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
       return sendJson(response, 200, await capabilities());
     if (
       request.method === "POST" &&
-      (request.url === "/voice/call" || request.url === "/voice/events")
+      (request.url === "/voice/call" ||
+        request.url === "/voice/events" ||
+        request.url === "/commands/route")
     ) {
       if (
         !allowedOrigin(origin) ||
@@ -313,10 +340,34 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             ),
           );
         }
+        if (!request.headers["content-type"]?.startsWith("application/json"))
+          return sendJson(response, 415, {
+            code: "UNSUPPORTED_MEDIA_TYPE",
+            message: "Commands require application/json",
+            retryable: false,
+          });
+        if (request.url === "/commands/route") {
+          const routeRequest = routeRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          await options.bus.publish(
+            options.bus.create("conversation.message.added", "dashboard.text", {
+              messageId: routeRequest.requestId,
+              role: "user",
+              content: routeRequest.text,
+              citations: [],
+            }),
+          );
+          return sendJson(
+            response,
+            200,
+            await publishRouteDecision(options.bus, router, routeRequest),
+          );
+        }
         const signal = voiceClientSignalSchema.parse(
           JSON.parse(await readBody(request)) as unknown,
         );
-        await publishVoiceSignal(options.bus, signal);
+        await publishVoiceSignal(options.bus, signal, router);
         response.writeHead(204, { "cache-control": "no-store" });
         response.end();
         return;
@@ -328,8 +379,14 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             retryable: cause.retryable,
           });
         return sendJson(response, 400, {
-          code: "INVALID_VOICE_REQUEST",
-          message: "Voice request was malformed",
+          code:
+            request.url === "/commands/route"
+              ? "INVALID_ROUTE_REQUEST"
+              : "INVALID_VOICE_REQUEST",
+          message:
+            request.url === "/commands/route"
+              ? "Route request was malformed"
+              : "Voice request was malformed",
           retryable: false,
         });
       }
