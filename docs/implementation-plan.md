@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 1 — DONE**
-Next phase: **Phase 2 — NOT_STARTED**
+Current phase: **Phase 2 — DONE**
+Next phase: **Phase 3 — NOT_STARTED**
 
 ## Status definitions
 
@@ -35,7 +35,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | -1 — Open-source architecture audit  | DONE        | License/source audit and revised architecture/security/plan                       |
 | 0 — Repository bootstrap             | DONE        | Runnable monorepo, desktop shell, core health connection, config/database/logging |
 | 1 — Event bus                        | DONE        | Validated typed events, replayable history, dashboard subscription                |
-| 2 — Functional HUD                   | NOT_STARTED | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
+| 2 — Functional HUD                   | DONE        | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
 | 3 — Multi-monitor Reference Deck     | NOT_STARTED | Display discovery, persisted placement, second window/fallback                    |
 | 4 — Alt+Space + voice                | NOT_STARTED | Windows activation and provider-based spoken conversation                         |
 | 5 — Orchestrator/tool router         | NOT_STARTED | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
@@ -91,12 +91,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 2 — Functional JARVIS HUD
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Dark futuristic layout, state orb, project/agent panels, conversation/activity summaries, approvals surface placeholder, telemetry strip, connection/error states, accessibility/reduced motion.
 - **Dependencies:** Phase 1 state projection/events.
 - **Acceptance:** Required layout is recognizably JARVIS rather than SaaS; every displayed status derives from real events/health; keyboard/responsive states work; raw developer logs remain separate.
 - **Tests:** Component/reducer tests, visual snapshots at required states, accessibility checks, reconnect/stale state, frontend production build and manual HUD smoke test.
-- **Known risks:** Decorative state drift, performance of animation, contrast/motion accessibility, layout at varied Windows scaling.
+- **Evidence:** Event-projection and live telemetry tests bring the suite to 14 passing tests. Format/lint/typecheck/build and authenticated smoke pass. A 1440×900 Edge render was inspected with the real HUD layout, central reticle/orb, project/agent/conversation/context panels, and telemetry rail.
+- **Known limitations:** Project, agent, conversation, approval, microphone, and voice panels remain truthful empty/not-configured states until their owning phases emit data. Native Windows scaling and Tauri-window accessibility smoke remain part of packaging validation.
 
 ### Phase 3 — Multi-monitor Reference Deck
 

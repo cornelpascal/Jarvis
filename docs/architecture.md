@@ -19,6 +19,12 @@ Phase 0 implements the monorepo, shared runtime contracts, SQLite migration laye
 - Development launcher: a random 256-bit launch token is passed to the core and dashboard processes through their environment; it never appears in the URL.
 - Build outputs: `apps/dashboard/dist` and `services/core/dist`.
 
+## Phase 2 HUD projection
+
+The React dashboard reduces registered events into a local display projection. `jarvis.state.changed` drives the orb and mode label; telemetry values originate in `system.telemetry`; project, agent, conversation, and approval surfaces remain empty until corresponding typed events exist. Connection health is transport state rather than decorative UI state.
+
+CPU and memory use Node OS counters, disk uses filesystem statistics, and network status uses active non-loopback interfaces. Microphone/voice deliberately report `not_configured` until Phase 4. The normal conversation surface contains user-facing activity only; raw event metadata is isolated in an explicit developer inspector. Animation respects `prefers-reduced-motion`.
+
 ## Architectural principles
 
 1. The Node/TypeScript core owns business rules and authoritative state.

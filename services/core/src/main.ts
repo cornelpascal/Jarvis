@@ -11,6 +11,7 @@ import { openJarvisDatabase } from "@jarvis/database";
 import { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
 import { createCoreServer } from "./server.js";
+import { startTelemetry } from "./telemetry.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const manifest = JSON.parse(
@@ -40,6 +41,10 @@ await bus.publish(
   bus.create("jarvis.ready", "core", { healthUrl: `${server.url}/health` }),
 );
 await bus.publish(
+  bus.create("jarvis.state.changed", "core", { state: "IDLE" }),
+);
+const stopTelemetry = startTelemetry(bus, paths.root);
+await bus.publish(
   bus.create("system.health", "core", {
     status: "ok",
     database: "ok",
@@ -52,6 +57,7 @@ async function stop(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
   logger.log("info", "shutdown.requested", { signal });
+  stopTelemetry();
   await server.stop();
   database.close();
   process.exitCode = 0;

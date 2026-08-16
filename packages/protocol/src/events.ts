@@ -51,6 +51,22 @@ export type JarvisEvent<TPayload = unknown> = Omit<
 
 export const eventPayloadSchemas = {
   "jarvis.ready": z.strictObject({ healthUrl: z.url() }),
+  "jarvis.state.changed": z.strictObject({
+    state: z.enum([
+      "IDLE",
+      "LISTENING",
+      "USER_SPEAKING",
+      "THINKING",
+      "SEARCHING",
+      "RESEARCHING",
+      "CODING",
+      "TESTING",
+      "WAITING_APPROVAL",
+      "SPEAKING",
+      "ERROR",
+    ]),
+    reason: z.string().min(1).optional(),
+  }),
   "jarvis.test": z.strictObject({
     message: z.string().min(1),
     ordinal: z.int().nonnegative(),
@@ -59,6 +75,58 @@ export const eventPayloadSchemas = {
     status: z.enum(["ok", "degraded", "unavailable"]),
     database: z.enum(["ok", "degraded", "unavailable"]),
     uptimeSeconds: z.number().nonnegative(),
+  }),
+  "system.telemetry": z.strictObject({
+    cpuPercent: z.number().min(0).max(100),
+    ramUsedBytes: z.number().nonnegative(),
+    ramTotalBytes: z.number().positive(),
+    diskUsedBytes: z.number().nonnegative().optional(),
+    diskTotalBytes: z.number().positive().optional(),
+    network: z.enum(["online", "offline", "unknown"]),
+    microphone: z.enum(["ready", "muted", "unavailable", "not_configured"]),
+    voice: z.enum([
+      "idle",
+      "listening",
+      "speaking",
+      "unavailable",
+      "not_configured",
+    ]),
+    core: z.enum(["online", "degraded", "offline"]),
+    codexAgents: z.int().nonnegative(),
+  }),
+  "conversation.message.added": z.strictObject({
+    messageId: z.string().min(1),
+    role: z.enum(["user", "assistant", "activity"]),
+    content: z.string().min(1),
+    citations: z
+      .array(z.strictObject({ title: z.string().min(1), url: z.url() }))
+      .default([]),
+  }),
+  "project.registered": z.strictObject({
+    projectId: z.string().min(1),
+    name: z.string().min(1),
+    path: z.string().min(1),
+    enabled: z.boolean(),
+  }),
+  "project.selected": z.strictObject({ projectId: z.string().min(1) }),
+  "codex.agent.progress": z.strictObject({
+    agentRunId: z.string().min(1),
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    label: z.string().min(1),
+    title: z.string().min(1),
+    state: z.string().min(1),
+  }),
+  "approval.requested": z.strictObject({
+    approvalId: z.string().min(1),
+    action: z.string().min(1),
+    reason: z.string().min(1),
+    riskLevel: z.union([
+      z.literal(0),
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+    ]),
   }),
 } as const;
 
