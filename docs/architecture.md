@@ -168,6 +168,8 @@ Malformed inbound messages are rejected and counted. Malformed provider messages
 
 ## Event bus and state projection
 
+Phase 1 implements the validated registry, monotonic sequence high-water mark, durable SQLite history, bounded cursor replay, duplicate window, authenticated subscription handshake, slow-consumer cutoff, and dashboard reconnect. See `docs/events.md` for the wire contract.
+
 Event families are namespaced as required: `jarvis.*`, `voice.*`, `conversation.*`, `agent.*`, `research.*`, `reference.*`, `browser.*`, `project.*`, `codex.*`, `git.*`, `deployment.*`, `system.*`, `approval.*`, `memory.*`, and `notification.*`.
 
 The bus has two layers:

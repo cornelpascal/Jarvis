@@ -13,7 +13,7 @@ describe("database", () => {
       type: "jarvis.ready",
       source: "test",
       schemaVersion: EVENT_SCHEMA_VERSION,
-      payload: { ready: true },
+      payload: { healthUrl: "http://127.0.0.1:43117/health" },
     } as const;
     database.appendEvent(event);
     expect(
@@ -26,6 +26,10 @@ describe("database", () => {
         .prepare("SELECT type FROM event_log WHERE id = ?")
         .get(event.id),
     ).toEqual({ type: "jarvis.ready" });
+    expect(database.latestEventSequence()).toBe(0);
+    expect(database.readEventsAfter(-1, 10)).toEqual([event]);
+    database.recordEventSequence(7);
+    expect(database.latestEventSequence()).toBe(7);
     database.close();
   });
 });

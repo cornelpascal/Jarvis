@@ -21,7 +21,9 @@ const environment = resolveEnvironment();
 const config = loadConfig();
 const paths = resolveRuntimePaths(environment);
 const database = openJarvisDatabase(paths.database);
-const bus = new LocalEventBus();
+const bus = new LocalEventBus({
+  initialSequence: database.latestEventSequence() + 1,
+});
 const sessionToken =
   process.env.JARVIS_SESSION_TOKEN ?? randomBytes(32).toString("base64url");
 const server = createCoreServer({
@@ -36,6 +38,13 @@ const server = createCoreServer({
 await server.start();
 await bus.publish(
   bus.create("jarvis.ready", "core", { healthUrl: `${server.url}/health` }),
+);
+await bus.publish(
+  bus.create("system.health", "core", {
+    status: "ok",
+    database: "ok",
+    uptimeSeconds: 0,
+  }),
 );
 
 let stopping = false;

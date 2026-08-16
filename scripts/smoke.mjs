@@ -3,8 +3,8 @@ import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import WebSocket from "ws";
 
-const token = "phase0-smoke-token";
-const dataDirectory = resolve(".jarvis-test", "phase0-smoke");
+const token = "phase1-smoke-token";
+const dataDirectory = resolve(".jarvis-test", "phase1-smoke");
 await mkdir(dataDirectory, { recursive: true });
 const child = spawn(process.execPath, ["services/core/dist/main.js"], {
   env: {
@@ -34,6 +34,7 @@ async function waitForHealth() {
 async function checkWebSocket() {
   const encoded = Buffer.from(token, "utf8").toString("base64url");
   return new Promise((resolveSocket, rejectSocket) => {
+    const eventTypes = [];
     const socket = new WebSocket(
       "ws://127.0.0.1:43117/events",
       ["jarvis.auth.v1", `jarvis.token.${encoded}`],
@@ -43,11 +44,26 @@ async function checkWebSocket() {
       () => rejectSocket(new Error("WebSocket smoke test timed out")),
       3_000,
     );
-    socket.once("open", () => {
-      clearTimeout(timeout);
-      const protocol = socket.protocol;
-      socket.close();
-      resolveSocket(protocol);
+    socket.on("message", (raw) => {
+      const message = JSON.parse(raw.toString());
+      if (message.kind === "hello") {
+        socket.send(
+          JSON.stringify({
+            kind: "subscribe",
+            protocolVersion: "1.0.0",
+            eventSchemaVersion: 1,
+            afterSequence: -1,
+            replayLimit: 20,
+          }),
+        );
+      } else if (message.kind === "event") {
+        eventTypes.push(message.event.type);
+      } else if (message.kind === "replay_complete") {
+        clearTimeout(timeout);
+        const result = { protocol: socket.protocol, eventTypes };
+        socket.close();
+        resolveSocket(result);
+      }
     });
     socket.once("error", rejectSocket);
   });
@@ -55,8 +71,8 @@ async function checkWebSocket() {
 
 try {
   const health = await waitForHealth();
-  const protocol = await checkWebSocket();
-  console.log(JSON.stringify({ health, websocket: protocol }, null, 2));
+  const websocket = await checkWebSocket();
+  console.log(JSON.stringify({ health, websocket }, null, 2));
 } finally {
   child.kill("SIGTERM");
   await new Promise((resolveExit) => child.once("exit", resolveExit));

@@ -195,6 +195,10 @@ dd {
   color: #b9e8f5;
   font-weight: 500;
 }
+.event-panel strong span {
+  color: #43d9ff;
+  font-variant-numeric: tabular-nums;
+}
 .event-panel time {
   color: #5c7884;
 }

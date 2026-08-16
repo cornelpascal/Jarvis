@@ -1,40 +1,25 @@
 import { useEffect, useState } from "react";
-import type { HealthSnapshot, JarvisEvent } from "@jarvis/protocol";
+import type { HealthSnapshot, KnownJarvisEvent } from "@jarvis/protocol";
 import { connectCore, type ConnectionState } from "./core-client";
 import "./styles.css";
 
 export function App() {
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [health, setHealth] = useState<HealthSnapshot>();
-  const [events, setEvents] = useState<JarvisEvent[]>([]);
+  const [events, setEvents] = useState<
+    Array<{ event: KnownJarvisEvent; replayed: boolean }>
+  >([]);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    let active = true;
-    void connectCore({
+    const cleanup = connectCore({
       onConnection: setConnection,
       onHealth: setHealth,
-      onEvent: (event) =>
-        setEvents((current) => [event, ...current].slice(0, 20)),
-    })
-      .then((stop) => {
-        if (active) cleanup = stop;
-        else stop();
-      })
-      .catch((cause: unknown) => {
-        if (!active) return;
-        setConnection("disconnected");
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : "Unable to connect to JARVIS Core",
-        );
-      });
-    return () => {
-      active = false;
-      cleanup?.();
-    };
+      onEvent: (event, replayed) =>
+        setEvents((current) => [{ event, replayed }, ...current].slice(0, 50)),
+      onError: (cause) => setError(cause.message),
+    });
+    return cleanup;
   }, []);
 
   return (
@@ -76,17 +61,24 @@ export function App() {
           <p className="core-label">
             {connection === "connected" ? "CORE ONLINE" : "CORE LINK"}
           </p>
-          <p className="core-detail">{error ?? "Phase 0 systems nominal"}</p>
+          <p className="core-detail">
+            {error ?? "Replayable event channel nominal"}
+          </p>
         </section>
         <aside className="panel event-panel">
           <h2>EVENT LINK</h2>
           {events.length === 0 ? (
             <p className="empty">Awaiting core events</p>
           ) : (
-            events.map((event) => (
-              <article key={event.id}>
-                <strong>{event.type}</strong>
-                <time>{new Date(event.timestamp).toLocaleTimeString()}</time>
+            events.map(({ event, replayed }) => (
+              <article key={event.id} title={JSON.stringify(event.payload)}>
+                <strong>
+                  <span>#{event.sequence}</span> {event.type}
+                </strong>
+                <time>
+                  {replayed ? "REPLAY · " : ""}
+                  {new Date(event.timestamp).toLocaleTimeString()}
+                </time>
               </article>
             ))
           )}

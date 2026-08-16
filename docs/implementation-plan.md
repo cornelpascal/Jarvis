@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 0 — DONE**
-Next phase: **Phase 1 — NOT_STARTED**
+Current phase: **Phase 1 — DONE**
+Next phase: **Phase 2 — NOT_STARTED**
 
 ## Status definitions
 
@@ -34,7 +34,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | ------------------------------------ | ----------- | --------------------------------------------------------------------------------- |
 | -1 — Open-source architecture audit  | DONE        | License/source audit and revised architecture/security/plan                       |
 | 0 — Repository bootstrap             | DONE        | Runnable monorepo, desktop shell, core health connection, config/database/logging |
-| 1 — Event bus                        | NOT_STARTED | Validated typed events, replayable history, dashboard subscription                |
+| 1 — Event bus                        | DONE        | Validated typed events, replayable history, dashboard subscription                |
 | 2 — Functional HUD                   | NOT_STARTED | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
 | 3 — Multi-monitor Reference Deck     | NOT_STARTED | Display discovery, persisted placement, second window/fallback                    |
 | 4 — Alt+Space + voice                | NOT_STARTED | Windows activation and provider-based spoken conversation                         |
@@ -81,12 +81,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 1 — Event bus
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Runtime-validated event registry/envelopes, sequence/correlation/causation IDs, transient vs durable delivery, SQLite event history, replay cursor, dashboard inspector, malformed-event rejection.
 - **Dependencies:** Phase 0 protocol, database, local transport.
 - **Acceptance:** Core emits representative test events; dashboard receives and replays them; important history persists; shared types/runtime schemas agree; malformed events cannot mutate state.
 - **Tests:** Schema property/fixture tests; reducer idempotency; persistence/replay ordering; reconnect/backpressure; malformed/oversized/duplicate event tests.
-- **Known risks:** Event schema churn, unbounded history, duplicate delivery, high-frequency event pressure.
+- **Evidence:** 11 unit/integration tests pass, including durable replay, live delivery, duplicate rejection, payload validation, and malformed authenticated subscriptions. Production builds pass and the smoke test replays `jarvis.ready` and `system.health` over the authenticated stream.
+- **Known limitations:** Event history retention/compaction policy and a full developer log viewer remain later observability work. The current registry intentionally contains only Phase 1 event types and expands with each subsystem.
 
 ### Phase 2 — Functional JARVIS HUD
 

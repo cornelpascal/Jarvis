@@ -1,23 +1,56 @@
 import { randomUUID } from "node:crypto";
 import {
   EVENT_SCHEMA_VERSION,
-  jarvisEventSchema,
+  MAX_EVENT_BYTES,
+  encodedEventSize,
+  parseJarvisEvent,
+  type EventPayloadMap,
   type JarvisEvent,
+  type KnownEventType,
+  type KnownJarvisEvent,
 } from "@jarvis/protocol";
 
-export type EventListener = (event: JarvisEvent) => void | Promise<void>;
+export interface EventDelivery {
+  durable: boolean;
+}
+
+export type EventListener = (
+  event: KnownJarvisEvent,
+  delivery: EventDelivery,
+) => void | Promise<void>;
+
+export interface EventBusOptions {
+  initialSequence?: number;
+  duplicateWindow?: number;
+}
+
+export class DuplicateEventError extends Error {
+  override readonly name = "DuplicateEventError";
+}
 
 export class LocalEventBus {
   readonly #listeners = new Set<EventListener>();
-  #sequence = 0;
+  readonly #seenIds = new Set<string>();
+  readonly #seenOrder: string[] = [];
+  readonly #duplicateWindow: number;
+  #sequence: number;
+
+  constructor(options: EventBusOptions = {}) {
+    this.#sequence = options.initialSequence ?? 0;
+    this.#duplicateWindow = options.duplicateWindow ?? 10_000;
+  }
 
   subscribe(listener: EventListener): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   }
 
-  create<T>(type: string, source: string, payload: T): JarvisEvent<T> {
-    return jarvisEventSchema.parse({
+  create<K extends KnownEventType>(
+    type: K,
+    source: string,
+    payload: EventPayloadMap[K],
+  ): KnownJarvisEvent {
+    return parseJarvisEvent({
       id: randomUUID(),
       sequence: this.#sequence++,
       timestamp: new Date().toISOString(),
@@ -25,13 +58,28 @@ export class LocalEventBus {
       source,
       schemaVersion: EVENT_SCHEMA_VERSION,
       payload,
-    }) as JarvisEvent<T>;
+    });
   }
 
-  async publish(event: JarvisEvent): Promise<void> {
-    const validated = jarvisEventSchema.parse(event) as JarvisEvent;
+  async publish(
+    event: JarvisEvent,
+    delivery: EventDelivery = { durable: true },
+  ): Promise<void> {
+    const validated = parseJarvisEvent(event);
+    if (encodedEventSize(validated) > MAX_EVENT_BYTES)
+      throw new RangeError("Event exceeds maximum encoded size");
+    if (this.#seenIds.has(validated.id))
+      throw new DuplicateEventError(`Duplicate event: ${validated.id}`);
+    this.#seenIds.add(validated.id);
+    this.#seenOrder.push(validated.id);
+    if (this.#seenOrder.length > this.#duplicateWindow) {
+      const expired = this.#seenOrder.shift();
+      if (expired) this.#seenIds.delete(expired);
+    }
     await Promise.all(
-      [...this.#listeners].map(async (listener) => listener(validated)),
+      [...this.#listeners].map(async (listener) =>
+        listener(validated, delivery),
+      ),
     );
   }
 }

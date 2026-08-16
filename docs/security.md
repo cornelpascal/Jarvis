@@ -32,6 +32,8 @@ Hard defaults:
 
 Known Phase 0 gaps intentionally closed in later phases are replay/backpressure limits (Phase 1), a durable approval broker (Phase 14), and a Windows credential-store implementation before external providers are enabled.
 
+Phase 1 closes the event-channel replay/backpressure gap with a 256 KiB message ceiling, a 500-event replay ceiling, a 512 KiB slow-consumer cutoff, strict registered payload schemas, a five-second subscription deadline, and rejection of binary/repeated/malformed subscription messages.
+
 ## Assets
 
 Protected assets include:
