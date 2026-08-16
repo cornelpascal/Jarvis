@@ -1,0 +1,35 @@
+app:
+  name: JARVIS
+
+projects:
+  roots:
+    - "C:\\Documents"
+
+voice:
+  enabled: true
+  activation: hotkey
+  hotkey: "Alt+Space"
+
+references:
+  mode: smart
+  visual_threshold: 0.65
+  images: true
+  videos: true
+  sources: true
+  autoplay_video: false
+
+codex:
+  max_concurrent_agents: 3
+  default_mode: develop
+
+git:
+  auto_commit: false
+  auto_push: false
+
+security:
+  require_push_confirmation: true
+  require_deploy_confirmation: true
+
+network:
+  bind_host: "127.0.0.1"
+  port: 43117

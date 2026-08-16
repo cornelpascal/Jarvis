@@ -1,13 +1,23 @@
 # JARVIS Architecture
 
-Status: Phase -1 reference architecture
+Status: Phase 0 implemented foundation
 Last updated: 2026-08-17
 
 ## Purpose
 
 JARVIS is a Windows-first local desktop operating layer. It combines a realtime conversation surface with asynchronous research, references, project retrieval, coding agents, Git, deployment, memory, and allow-listed system control. The architecture keeps platform APIs, model providers, and agent transports replaceable so a later macOS port does not require rewriting the core.
 
-Phase -1 produced architecture only. No application subsystem is implemented yet.
+Phase 0 implements the monorepo, shared runtime contracts, SQLite migration layer, redacted logging, authenticated localhost core transport, and a React/Tauri dashboard shell. Later subsystem sections remain the target architecture until their named phase is complete.
+
+## Phase 0 implementation
+
+- Workspace packages: protocol/provider contracts, config, database, logging, event-bus foundation, permission types, OS abstractions, and shared UI tokens.
+- Core process: Node.js/TypeScript HTTP and WebSocket server on `127.0.0.1:43117`.
+- Desktop shell: React 19/Vite frontend plus a minimal Tauri 2 Rust host.
+- Runtime state: `%LOCALAPPDATA%\Jarvis-development` in development, `%LOCALAPPDATA%\Jarvis-test` in tests, and `%LOCALAPPDATA%\Jarvis` in production. `JARVIS_DATA_DIR` provides an explicit isolated override.
+- SQLite: foreign keys, WAL mode, versioned migrations, and initial tables for every required domain. Secret values are excluded by design.
+- Development launcher: a random 256-bit launch token is passed to the core and dashboard processes through their environment; it never appears in the URL.
+- Build outputs: `apps/dashboard/dist` and `services/core/dist`.
 
 ## Architectural principles
 
@@ -98,11 +108,13 @@ The local Node service owns:
 The service binds to `127.0.0.1` by default. Phase 0 will make the port typed/configurable; the provisional development default is `43117`. Expected endpoints are:
 
 - `GET /health` — process, protocol, schema, and dependency health;
-- `GET /v1/capabilities` — supported protocol/providers/native capabilities;
-- `WS /v1/events` — validated event stream with replay cursor;
+- `GET /capabilities` — supported protocol/providers/native capabilities;
+- `WS /events` — authenticated validated event stream (replay is added in Phase 1);
 - `/v1/commands/*` — typed, narrowly scoped dashboard commands.
 
 LAN binding is disabled by default and is not part of Phase 0.
+
+The protocol version is `1.0.0` and the event schema version is `1`. Health and capability payloads are runtime-validated by the dashboard. Phase 1 adds an authenticated handshake message, replay cursor, bounds, and backpressure.
 
 ### Workers and providers
 

@@ -1,0 +1,7 @@
+node_modules
+dist
+target
+coverage
+pnpm-lock.yaml
+JARVIS_CODEX_IMPLEMENTATION_PROMPT_v2.md
+

@@ -1,6 +1,6 @@
 # JARVIS Security Architecture
 
-Status: Phase -1 security baseline
+Status: Phase 0 enforced baseline
 Last updated: 2026-08-17
 
 ## Security goals
@@ -19,6 +19,18 @@ Hard defaults:
 - never expose a generic shell to research/browser workers;
 - never store secret values in normal SQLite records, events, logs, or UI state;
 - never continuously capture microphone/screen data in V1.
+
+## Phase 0 controls in force
+
+- The configuration schema only accepts `127.0.0.1`; wildcard and LAN bindings fail validation.
+- WebSocket clients must provide the `jarvis.auth.v1` subprotocol and a launch-scoped token encoded in a second subprotocol value. The token is compared in constant time and never placed in a URL.
+- Browser origins are limited to the Tauri origin and loopback development origins. Health and capabilities are read-only; future command routes remain absent.
+- The dashboard CSP only permits its own assets and the configured loopback core channel.
+- Logs recursively redact credential-shaped keys and bearer/key-shaped values.
+- Development, test, and production databases are physically separated. SQLite contains no secret-value column or generic credential store.
+- The native host exposes only Tauri core defaults in Phase 0; system, shell, file, hotkey, screenshot, and deployment capabilities are not yet granted.
+
+Known Phase 0 gaps intentionally closed in later phases are replay/backpressure limits (Phase 1), a durable approval broker (Phase 14), and a Windows credential-store implementation before external providers are enabled.
 
 ## Assets
 
@@ -111,7 +123,7 @@ interface ActionRequest {
   riskLevel: 0 | 1 | 2 | 3;
   provider: string;
   operation: string;
-  resource: string;          // canonical identifier/path/URL/target
+  resource: string; // canonical identifier/path/URL/target
   projectId?: string;
   taskId?: string;
   worktreeId?: string;
@@ -126,12 +138,12 @@ An approval receipt binds decision, exact action digest, resource, project/task,
 
 ### Risk levels
 
-| Level | Default | Examples | Constraints |
-| --- | --- | --- | --- |
-| 0 — safe/read | Auto-allow under policy | Read allowed project file, list directory, project search, public web search, Git status/diff, show reference, telemetry | Canonical scope, data-egress policy, timeout, result limits, audit summary |
-| 1 — isolated development | Allow in configured task worktree | Edit/create worktree file, project-local install, lint/typecheck/test/build, local dev process | Must be owned worktree, no secret files by default, bounded child process, environment allow-list |
-| 2 — repository/environment change | Ask or use explicit granular policy | Commit, important config change, local service manipulation, install outside project | Exact preview, named project/resource, no blanket session shell permission |
-| 3 — consequential | Explicit user authorization by default | Git push, protected merge, production deploy, migration/destructive DB action, firewall/admin/credential/secret/destructive deletion | Action-bound one-use receipt, ambiguity resolved, audit record, no implicit retry |
+| Level                             | Default                                | Examples                                                                                                                             | Constraints                                                                                       |
+| --------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| 0 — safe/read                     | Auto-allow under policy                | Read allowed project file, list directory, project search, public web search, Git status/diff, show reference, telemetry             | Canonical scope, data-egress policy, timeout, result limits, audit summary                        |
+| 1 — isolated development          | Allow in configured task worktree      | Edit/create worktree file, project-local install, lint/typecheck/test/build, local dev process                                       | Must be owned worktree, no secret files by default, bounded child process, environment allow-list |
+| 2 — repository/environment change | Ask or use explicit granular policy    | Commit, important config change, local service manipulation, install outside project                                                 | Exact preview, named project/resource, no blanket session shell permission                        |
+| 3 — consequential                 | Explicit user authorization by default | Git push, protected merge, production deploy, migration/destructive DB action, firewall/admin/credential/secret/destructive deletion | Action-bound one-use receipt, ambiguity resolved, audit record, no implicit retry                 |
 
 Unknown actions default to Level 3/deny until classified. Policy failures are explicit errors, never silent fallbacks.
 

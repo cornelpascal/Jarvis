@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+.vite/
+target/
+*.log
+.env
+.env.*
+!.env.example
+.jarvis-dev/
+.jarvis-test/
+.tooling/
+apps/dashboard/src-tauri/gen/
+apps/dashboard/src-tauri/target/

@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase -1 — DONE**
-Next phase: **Phase 0 — NOT_STARTED; requires user review/approval**
+Current phase: **Phase 0 — DONE**
+Next phase: **Phase 1 — NOT_STARTED**
 
 ## Status definitions
 
@@ -30,33 +30,33 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ## Phase overview
 
-| Phase | Status | Outcome |
-| --- | --- | --- |
-| -1 — Open-source architecture audit | DONE | License/source audit and revised architecture/security/plan |
-| 0 — Repository bootstrap | NOT_STARTED | Runnable monorepo, desktop shell, core health connection, config/database/logging |
-| 1 — Event bus | NOT_STARTED | Validated typed events, replayable history, dashboard subscription |
-| 2 — Functional HUD | NOT_STARTED | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout |
-| 3 — Multi-monitor Reference Deck | NOT_STARTED | Display discovery, persisted placement, second window/fallback |
-| 4 — Alt+Space + voice | NOT_STARTED | Windows activation and provider-based spoken conversation |
-| 5 — Orchestrator/tool router | NOT_STARTED | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
-| 6 — Web research | NOT_STARTED | Fresh structured research with sources and streamed events |
-| 7 — Smart References | NOT_STARTED | Independent visual-value evaluator and asynchronous rendering |
-| 8 — Browser Agent | NOT_STARTED | Isolated Playwright Chromium and typed browser actions |
-| 9 — Project Registry | NOT_STARTED | Configurable project discovery and metadata |
-| 10 — Project index/retrieval | NOT_STARTED | Deterministic layered local project search |
-| 11 — Codex integration | NOT_STARTED | Structured `CodingAgentProvider` with background task stream |
-| 12 — Worktree manager | NOT_STARTED | One isolated worktree/branch per significant coding task |
-| 13 — Verification + diff UI | NOT_STARTED | Configured checks and Reference Deck diff review |
-| 14 — Permission broker | NOT_STARTED | Complete mediation, risk policy, approvals, denial/injection tests |
-| 15 — Git commit/push | NOT_STARTED | Explicit, resolved, audited commit/push flow; no auto-push |
-| 16 — Deployment system | NOT_STARTED | Typed adapters, validated configured deploy, health events |
-| 17 — Deployment config auto-creation | NOT_STARTED | Missing-config analysis/proposal/approval/save workflow |
-| 18 — Windows system tools | NOT_STARTED | Allow-listed least-privilege control and telemetry adapters |
-| 19 — Screenshot context | NOT_STARTED | Explicit active-window/display capture as conversation context |
-| 20 — Memory | NOT_STARTED | Scoped explicit memories and relevant retrieval |
-| 21 — Notifications/background work | NOT_STARTED | Concurrent jobs, non-blocking conversation, rate-aware notifications |
-| 22 — Wake word | NOT_STARTED | Local wake-word activation after voice stability |
-| 23 — Windows packaging | NOT_STARTED | Installer, startup, crash recovery, migration, release documentation |
+| Phase                                | Status      | Outcome                                                                           |
+| ------------------------------------ | ----------- | --------------------------------------------------------------------------------- |
+| -1 — Open-source architecture audit  | DONE        | License/source audit and revised architecture/security/plan                       |
+| 0 — Repository bootstrap             | DONE        | Runnable monorepo, desktop shell, core health connection, config/database/logging |
+| 1 — Event bus                        | NOT_STARTED | Validated typed events, replayable history, dashboard subscription                |
+| 2 — Functional HUD                   | NOT_STARTED | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
+| 3 — Multi-monitor Reference Deck     | NOT_STARTED | Display discovery, persisted placement, second window/fallback                    |
+| 4 — Alt+Space + voice                | NOT_STARTED | Windows activation and provider-based spoken conversation                         |
+| 5 — Orchestrator/tool router         | NOT_STARTED | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
+| 6 — Web research                     | NOT_STARTED | Fresh structured research with sources and streamed events                        |
+| 7 — Smart References                 | NOT_STARTED | Independent visual-value evaluator and asynchronous rendering                     |
+| 8 — Browser Agent                    | NOT_STARTED | Isolated Playwright Chromium and typed browser actions                            |
+| 9 — Project Registry                 | NOT_STARTED | Configurable project discovery and metadata                                       |
+| 10 — Project index/retrieval         | NOT_STARTED | Deterministic layered local project search                                        |
+| 11 — Codex integration               | NOT_STARTED | Structured `CodingAgentProvider` with background task stream                      |
+| 12 — Worktree manager                | NOT_STARTED | One isolated worktree/branch per significant coding task                          |
+| 13 — Verification + diff UI          | NOT_STARTED | Configured checks and Reference Deck diff review                                  |
+| 14 — Permission broker               | NOT_STARTED | Complete mediation, risk policy, approvals, denial/injection tests                |
+| 15 — Git commit/push                 | NOT_STARTED | Explicit, resolved, audited commit/push flow; no auto-push                        |
+| 16 — Deployment system               | NOT_STARTED | Typed adapters, validated configured deploy, health events                        |
+| 17 — Deployment config auto-creation | NOT_STARTED | Missing-config analysis/proposal/approval/save workflow                           |
+| 18 — Windows system tools            | NOT_STARTED | Allow-listed least-privilege control and telemetry adapters                       |
+| 19 — Screenshot context              | NOT_STARTED | Explicit active-window/display capture as conversation context                    |
+| 20 — Memory                          | NOT_STARTED | Scoped explicit memories and relevant retrieval                                   |
+| 21 — Notifications/background work   | NOT_STARTED | Concurrent jobs, non-blocking conversation, rate-aware notifications              |
+| 22 — Wake word                       | NOT_STARTED | Local wake-word activation after voice stability                                  |
+| 23 — Windows packaging               | NOT_STARTED | Installer, startup, crash recovery, migration, release documentation              |
 
 ## Detailed phase plan
 
@@ -71,12 +71,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 0 — Repository bootstrap
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** pnpm monorepo; strict TypeScript; shared protocol/provider contracts; typed config; SQLite repositories/migrations; structured redacted logging; local Node core; Tauri 2/React/Vite shell; authenticated versioned health connection; environment-separated data; PowerShell install/dev/test/health scripts; CI-ready checks.
 - **Dependencies:** Phase -1 approval; supported Node/pnpm/Rust/Tauri Windows toolchain.
 - **Acceptance:** `pnpm install` and `pnpm dev` start core and dashboard; HUD shell reports real connected health/capabilities; core binds loopback; restart preserves settings/database; no AI behavior; architecture/local port/data/log/startup/recovery documented.
 - **Tests:** Config schema/default/override tests; migration/repository tests; log redaction tests; authenticated health/handshake integration; dashboard reconnect; Tauri and workspace builds; PowerShell health smoke test.
-- **Known risks:** Rust/WebView2/toolchain prerequisites, local token handoff, Windows path handling, native SQLite packaging, dev-process cleanup.
+- **Evidence:** Workspace format/lint/typecheck passed; 7 unit tests passed; core and dashboard production builds passed; live smoke returned core/database `ok`, dashboard HTTP 200, and authenticated `jarvis.auth.v1` WebSocket negotiation.
+- **Known limitations:** Rust/MSVC are not installed on the current machine, so the native Tauri executable was not compiled during this phase; the Rust shell is present and frontend/core builds are green. Event replay/reconnect and durable log files are Phase 1/observability follow-ups. `corepack pnpm` or `pnpm.cmd` is required in PowerShell installations that block `.ps1` shims.
 
 ### Phase 1 — Event bus
 
@@ -293,16 +294,16 @@ Deployment architecture exists in contracts earlier, but actual configured deplo
 
 ## Cross-phase risk register
 
-| Risk | Owner phase(s) | Control |
-| --- | --- | --- |
-| Upstream protocol/license change | -1, 11, all reuse | Pin evidence, adapter boundary, contract tests, re-audit before copying/upgrading |
-| Secrets in files/logs/events | 0, 9–20 | SecretProvider, exclusions, redaction tests, no `.env` worktree copy |
-| Web/project prompt injection | 5–8, 10–17 | Provenance/taint, structured extraction, permission broker, adversarial fixtures |
-| Parallel state corruption | 1, 11–13, 21 | Durable state machines, idempotency, locks, single SQLite writer, bounded concurrency |
-| Unsafe Windows paths/processes | 0, 9, 12–19 | Canonicalization, reparse-point checks, argument arrays, job/process cleanup |
-| Misleading HUD state | 1–3, all jobs | Runtime-validated events and reducers only; explicit stale/error states |
-| Consequential ambiguity | 14–17 | Exact target resolution, previews, action-bound receipts, default deny |
-| Phase scope creep | all | One active phase, acceptance commit, wait for review |
+| Risk                             | Owner phase(s)    | Control                                                                               |
+| -------------------------------- | ----------------- | ------------------------------------------------------------------------------------- |
+| Upstream protocol/license change | -1, 11, all reuse | Pin evidence, adapter boundary, contract tests, re-audit before copying/upgrading     |
+| Secrets in files/logs/events     | 0, 9–20           | SecretProvider, exclusions, redaction tests, no `.env` worktree copy                  |
+| Web/project prompt injection     | 5–8, 10–17        | Provenance/taint, structured extraction, permission broker, adversarial fixtures      |
+| Parallel state corruption        | 1, 11–13, 21      | Durable state machines, idempotency, locks, single SQLite writer, bounded concurrency |
+| Unsafe Windows paths/processes   | 0, 9, 12–19       | Canonicalization, reparse-point checks, argument arrays, job/process cleanup          |
+| Misleading HUD state             | 1–3, all jobs     | Runtime-validated events and reducers only; explicit stale/error states               |
+| Consequential ambiguity          | 14–17             | Exact target resolution, previews, action-bound receipts, default deny                |
+| Phase scope creep                | all               | One active phase, acceptance commit, wait for review                                  |
 
 ## Known Phase -1 limitations
 
