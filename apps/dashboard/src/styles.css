@@ -562,6 +562,11 @@ dd {
   padding: 0 12px;
   border-left: 1px solid rgb(69 220 255 / 9%);
 }
+.footer-actions button.active {
+  color: #e9fbff;
+  background: rgb(69 220 255 / 10%);
+  box-shadow: inset 0 2px 0 rgb(69 220 255 / 70%);
+}
 
 .modal-backdrop {
   position: fixed;

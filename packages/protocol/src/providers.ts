@@ -1,3 +1,5 @@
+import type { VoiceRuntimeState } from "./voice.js";
+
 export interface OperationContext {
   signal: AbortSignal;
   deadline: Date;
@@ -20,8 +22,26 @@ export interface LlmProvider {
 
 export interface VoiceProvider {
   health(): Promise<ProviderHealth>;
+  state(): VoiceRuntimeState;
+  activate(): Promise<void>;
+  setMuted(muted: boolean): Promise<void>;
+  listDevices(): Promise<VoiceAudioDevice[]>;
+  setInputDevice(deviceId?: string): Promise<void>;
+  setOutputDevice(deviceId?: string): Promise<void>;
+  subscribe(listener: VoiceStateListener): () => void;
   disconnect(): Promise<void>;
 }
+
+export interface VoiceAudioDevice {
+  id: string;
+  label: string;
+  kind: "input" | "output";
+}
+
+export type VoiceStateListener = (
+  state: VoiceRuntimeState,
+  message?: string,
+) => void;
 
 export interface ResearchProvider {
   health(): Promise<ProviderHealth>;
@@ -68,6 +88,8 @@ export interface ScreenshotProvider {
 
 export interface HotkeyProvider {
   health(): Promise<ProviderHealth>;
+  register(accelerator: string, handler: () => void): Promise<void>;
+  unregister(accelerator: string): Promise<void>;
 }
 
 export interface WindowManager {

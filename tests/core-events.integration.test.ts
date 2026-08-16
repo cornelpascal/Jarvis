@@ -11,11 +11,27 @@ import {
   PROTOCOL_VERSION,
   eventStreamServerMessageSchema,
   type EventStreamServerMessage,
+  type KnownJarvisEvent,
 } from "../packages/protocol/src/index.js";
 import {
   createCoreServer,
   type CoreServer,
 } from "../services/core/src/server.js";
+import type { RealtimeCallGateway } from "../services/voice/src/index.js";
+
+const voiceGateway: RealtimeCallGateway = {
+  health: () =>
+    Promise.resolve({
+      status: "available",
+      capabilities: ["webrtc"],
+    }),
+  createCall: (offerSdp) =>
+    Promise.resolve({
+      answerSdp: offerSdp.replace("offer", "answer"),
+      callId: "call_test",
+      provider: "openai-realtime",
+    }),
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -94,6 +110,7 @@ describe("core event stream", () => {
       bus,
       sessionToken: "integration-token",
       version: "test",
+      voiceGateway,
     });
     await server.start();
     await bus.publish(
@@ -144,6 +161,7 @@ describe("core event stream", () => {
       bus,
       sessionToken: "valid-token",
       version: "test",
+      voiceGateway,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -156,5 +174,71 @@ describe("core event stream", () => {
     );
     client.send("{");
     await expect(closed).resolves.toBe(1008);
+  });
+
+  it("authenticates voice call creation and validates client voice events", async () => {
+    const port = 46_000 + Math.floor(Math.random() * 500);
+    database = openJarvisDatabase(":memory:");
+    const bus = new LocalEventBus();
+    server = createCoreServer({
+      config: testConfig(port),
+      environment: "test",
+      database,
+      bus,
+      sessionToken: "voice-token",
+      version: "test",
+      voiceGateway,
+    });
+    await server.start();
+    const unauthorized = await fetch(
+      `http://127.0.0.1:${String(port)}/voice/call`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/sdp" },
+        body: "offer",
+      },
+    );
+    expect(unauthorized.status).toBe(401);
+
+    const call = await fetch(`http://127.0.0.1:${String(port)}/voice/call`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/sdp",
+        "x-jarvis-session-token": "voice-token",
+        origin: "http://127.0.0.1:1420",
+      },
+      body: "offer",
+    });
+    expect(call.status).toBe(201);
+    await expect(call.json()).resolves.toMatchObject({
+      answerSdp: "answer",
+      provider: "openai-realtime",
+    });
+
+    const received = new Promise<KnownJarvisEvent>((resolve) => {
+      const unsubscribe = bus.subscribe((event) => {
+        if (event.type === "voice.listening") {
+          unsubscribe();
+          resolve(event);
+        }
+      });
+    });
+    const signal = await fetch(
+      `http://127.0.0.1:${String(port)}/voice/events`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          origin: "http://127.0.0.1:1420",
+        },
+        body: JSON.stringify({ type: "voice.listening", muted: false }),
+      },
+    );
+    expect(signal.status).toBe(204);
+    await expect(received).resolves.toMatchObject({
+      type: "voice.listening",
+      payload: { provider: "openai-realtime", muted: false },
+    });
   });
 });

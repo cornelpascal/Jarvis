@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 3 — DONE**
-Next phase: **Phase 4 — NOT_STARTED**
+Current phase: **Phase 4 — DONE**
+Next phase: **Phase 5 — NOT_STARTED**
 
 ## Status definitions
 
@@ -37,7 +37,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 1 — Event bus                        | DONE        | Validated typed events, replayable history, dashboard subscription                |
 | 2 — Functional HUD                   | DONE        | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
 | 3 — Multi-monitor Reference Deck     | DONE        | Display discovery, persisted placement, second window/fallback                    |
-| 4 — Alt+Space + voice                | NOT_STARTED | Windows activation and provider-based spoken conversation                         |
+| 4 — Alt+Space + voice                | DONE        | Windows activation and provider-based spoken conversation                         |
 | 5 — Orchestrator/tool router         | NOT_STARTED | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
 | 6 — Web research                     | NOT_STARTED | Fresh structured research with sources and streamed events                        |
 | 7 — Smart References                 | NOT_STARTED | Independent visual-value evaluator and asynchronous rendering                     |
@@ -111,12 +111,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 4 — Alt+Space + voice
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** `HotkeyProvider`, `VoiceProvider`, Windows audio capture/playback, press-to-activate flow, transcript/audio streaming, interruption when supported, reconnect, mute/devices, voice-state events.
 - **Dependencies:** Phases 1–3; configured voice/model provider and secret abstraction.
 - **Acceptance:** Alt+Space reveals/focuses HUD and starts interaction; microphone and spoken reply work; listening/thinking/speaking/interrupted states are accurate; failures/reconnect are visible; no always-listening cloud stream.
 - **Tests:** Provider contract mocks, hotkey conflict/re-registration, audio state machine, interruption/cancellation, reconnect/timeouts, device loss, mocked conversation integration, Windows hardware smoke test.
-- **Known risks:** Provider/API evolution, latency, echo/barge-in, permissions, hotkey conflicts, audio device diversity and secret handling.
+- **Evidence:** 25 unit/integration tests pass, including current Realtime event mapping, server-only API-key handling, unauthenticated call denial, strict voice signal publication, hotkey ownership/conflicts, and HUD lifecycle projection. Format/lint/typecheck/workspace builds pass. Tauri compiles with the Windows global-shortcut plugin and the native smoke reports a running dashboard plus healthy core.
+- **Known limitations:** This machine has no `OPENAI_API_KEY`, so live microphone-to-provider speech could not be exercised against an external account; it fails visibly as unavailable and is covered through deterministic gateway/provider contracts. The provider supports input/output selection but the full settings selector is deferred. Two bounded reconnect attempts are implemented; device-removal UX remains hardware-validation work.
 
 ### Phase 5 — Orchestrator / tool router
 

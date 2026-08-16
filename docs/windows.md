@@ -1,6 +1,6 @@
 # Windows development and runtime
 
-Status: Phase 0 foundation  
+Status: Implemented through Phase 4
 Last updated: 2026-08-17
 
 ## Prerequisites
@@ -39,6 +39,21 @@ corepack pnpm smoke:native
 ```
 
 Display routing is available from **DISPLAYS** in the bottom HUD rail. The selected HUD and Reference Deck monitors persist across restarts. Disconnecting the selected reference monitor moves an existing deck to the remaining valid display; a single-monitor system uses a separate offset window.
+
+## Alt+Space and voice
+
+The native dashboard registers `Alt+Space` when the main WebView mounts. Pressing it restores/focuses the HUD and activates the realtime voice provider. If Windows or another application owns the chord, the HUD reports the conflict and leaves that registration untouched.
+
+Voice requires a server-side key in the environment that starts JARVIS Core:
+
+```powershell
+$env:OPENAI_API_KEY="<use your secret provider or current shell>"
+corepack pnpm dev
+```
+
+Never use a `VITE_` prefix for this key; Vite-prefixed values are renderer-visible. The microphone permission prompt comes from WebView2 on first use. The bottom rail exposes voice activation, mute/unmute, and session termination. Input/output devices are supported by the provider contract and Chromium device APIs; the settings selector is scheduled for the full settings phase.
+
+V1 voice is press-to-activate. Ending the session stops microphone tracks and closes WebRTC. Realtime call creation times out, connection loss retries twice, and missing credentials produce an explicit unavailable state.
 
 ## Data and recovery
 

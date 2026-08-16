@@ -108,4 +108,24 @@ describe("HUD state projection", () => {
     expect(state.approval?.riskLevel).toBe(3);
     expect(state.mode).toBe("WAITING_APPROVAL");
   });
+
+  it("projects voice lifecycle events into truthful HUD modes", () => {
+    const state = [
+      event(
+        "voice.connected",
+        { provider: "openai-realtime", sessionId: "session-1" },
+        0,
+      ),
+      event("voice.user_speaking", { provider: "openai-realtime" }, 1),
+      event("voice.processing", { provider: "openai-realtime" }, 2),
+      event("voice.speaking", { provider: "openai-realtime" }, 3),
+      event(
+        "voice.interrupted",
+        { provider: "openai-realtime", by: "user" },
+        4,
+      ),
+    ].reduce(reduceHudEvent, initialHudState);
+    expect(state.mode).toBe("LISTENING");
+    expect(state.modeReason).toBe("Response interrupted");
+  });
 });

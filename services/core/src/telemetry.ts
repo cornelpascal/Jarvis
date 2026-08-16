@@ -33,9 +33,45 @@ export function startTelemetry(
   bus: LocalEventBus,
   diskPath: string,
   intervalMs = 2_000,
+  voiceConfigured = false,
 ): () => void {
   const logger = new Logger("telemetry");
   let previous = cpuTimes();
+  let microphone: "ready" | "muted" | "unavailable" | "not_configured" =
+    voiceConfigured ? "ready" : "not_configured";
+  let voice:
+    "idle" | "listening" | "speaking" | "unavailable" | "not_configured" =
+    voiceConfigured ? "idle" : "unavailable";
+  const unsubscribe = bus.subscribe((event) => {
+    switch (event.type) {
+      case "voice.connected":
+      case "voice.listening":
+      case "voice.user_speaking":
+      case "voice.processing":
+        microphone =
+          event.type === "voice.listening" && event.payload.muted
+            ? "muted"
+            : "ready";
+        voice = "listening";
+        return;
+      case "voice.speaking":
+        microphone = "ready";
+        voice = "speaking";
+        return;
+      case "voice.muted.changed":
+        microphone = event.payload.muted ? "muted" : "ready";
+        return;
+      case "voice.disconnected":
+        microphone = voiceConfigured ? "ready" : "not_configured";
+        voice = voiceConfigured ? "idle" : "unavailable";
+        return;
+      case "voice.failed":
+        voice = "unavailable";
+        return;
+      default:
+        return;
+    }
+  });
   const sample = async (): Promise<void> => {
     const current = cpuTimes();
     const totalDelta = current.total - previous.total;
@@ -69,8 +105,8 @@ export function startTelemetry(
         ramTotalBytes,
         ...disk,
         network: networkState(),
-        microphone: "not_configured",
-        voice: "not_configured",
+        microphone,
+        voice,
         core: "online",
         codexAgents: 0,
       }),
@@ -80,5 +116,8 @@ export function startTelemetry(
   void sample();
   const timer = setInterval(() => void sample(), intervalMs);
   timer.unref();
-  return () => clearInterval(timer);
+  return () => {
+    unsubscribe();
+    clearInterval(timer);
+  };
 }

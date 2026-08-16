@@ -29,6 +29,8 @@ For the Tauri window after Rust is installed:
 pnpm --filter @jarvis/dashboard tauri dev
 ```
 
+`Alt+Space` reveals the native HUD and starts press-to-activate voice. Realtime voice is optional in development and reads `OPENAI_API_KEY` only in JARVIS Core; without it the HUD reports voice unavailable while all non-voice services continue to run.
+
 ## Checks
 
 ```powershell

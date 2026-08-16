@@ -15,13 +15,17 @@ import {
   MAX_REPLAY_LIMIT,
   PROTOCOL_VERSION,
   eventStreamSubscribeSchema,
+  voiceClientSignalSchema,
   type CapabilityManifest,
   type EventStreamServerMessage,
   type HealthSnapshot,
+  type VoiceClientSignal,
 } from "@jarvis/protocol";
+import { RealtimeGatewayError, type RealtimeCallGateway } from "@jarvis/voice";
 
 const MAX_BUFFERED_BYTES = 512 * 1024;
 const SUBSCRIBE_TIMEOUT_MS = 5_000;
+const MAX_COMMAND_BYTES = 64 * 1024;
 
 export interface CoreServerOptions {
   config: JarvisConfig;
@@ -30,6 +34,7 @@ export interface CoreServerOptions {
   bus: LocalEventBus;
   sessionToken: string;
   version: string;
+  voiceGateway: RealtimeCallGateway;
 }
 
 export interface CoreServer {
@@ -78,6 +83,127 @@ function protocolToken(request: IncomingMessage): string | undefined {
   }
 }
 
+function requestToken(request: IncomingMessage): string | undefined {
+  const token = request.headers["x-jarvis-session-token"];
+  return Array.isArray(token) ? token[0] : token;
+}
+
+function allowedOrigin(origin: string | undefined): boolean {
+  return (
+    origin === undefined ||
+    origin === "tauri://localhost" ||
+    /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/.test(origin)
+  );
+}
+
+async function readBody(
+  request: IncomingMessage,
+  maximumBytes = MAX_COMMAND_BYTES,
+): Promise<string> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of request as AsyncIterable<unknown>) {
+    if (!(typeof chunk === "string" || chunk instanceof Uint8Array))
+      throw new RealtimeGatewayError(
+        "INVALID_REQUEST_BODY",
+        "Request body contained an unsupported chunk",
+        400,
+        false,
+      );
+    const buffer = Buffer.from(chunk);
+    total += buffer.length;
+    if (total > maximumBytes)
+      throw new RealtimeGatewayError(
+        "REQUEST_TOO_LARGE",
+        "Request body is too large",
+        413,
+        false,
+      );
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function publishVoiceSignal(
+  bus: LocalEventBus,
+  signal: VoiceClientSignal,
+): Promise<void> {
+  const provider = "openai-realtime";
+  switch (signal.type) {
+    case "voice.connected":
+      await bus.publish(
+        bus.create(signal.type, "dashboard.voice", {
+          provider,
+          sessionId: signal.sessionId,
+        }),
+        { durable: false },
+      );
+      return;
+    case "voice.listening":
+      await bus.publish(
+        bus.create(signal.type, "dashboard.voice", {
+          provider,
+          muted: signal.muted,
+        }),
+        { durable: false },
+      );
+      return;
+    case "voice.user_speaking":
+    case "voice.processing":
+    case "voice.speaking":
+      await bus.publish(
+        bus.create(signal.type, "dashboard.voice", { provider }),
+        { durable: false },
+      );
+      return;
+    case "voice.interrupted":
+      await bus.publish(
+        bus.create(signal.type, "dashboard.voice", {
+          provider,
+          by: signal.by,
+        }),
+        { durable: false },
+      );
+      return;
+    case "voice.muted.changed":
+      await bus.publish(
+        bus.create(signal.type, "dashboard.voice", { muted: signal.muted }),
+        { durable: false },
+      );
+      return;
+    case "voice.disconnected":
+      await bus.publish(
+        bus.create(signal.type, "dashboard.voice", {
+          provider,
+          reason: signal.reason,
+          retryable: signal.retryable,
+        }),
+        { durable: false },
+      );
+      return;
+    case "voice.failed":
+      await bus.publish(
+        bus.create(signal.type, "dashboard.voice", {
+          provider,
+          code: signal.code,
+          message: signal.message,
+          retryable: signal.retryable,
+        }),
+        { durable: false },
+      );
+      return;
+    case "conversation.transcript":
+      await bus.publish(
+        bus.create("conversation.message.added", "dashboard.voice", {
+          messageId: signal.messageId,
+          role: signal.role,
+          content: signal.content,
+          citations: [],
+        }),
+      );
+  }
+}
+
 function sendStreamMessage(
   client: WebSocket,
   message: EventStreamServerMessage,
@@ -111,31 +237,121 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
     database: "ok",
     environment: options.environment,
   });
-  const capabilities: CapabilityManifest = {
-    protocolVersion: PROTOCOL_VERSION,
-    eventSchemaVersion: EVENT_SCHEMA_VERSION,
-    capabilities: ["health", "capabilities", "events", "event-replay"],
-    platform: process.platform,
-    providers: {},
+  const capabilities = async (): Promise<CapabilityManifest> => {
+    const voice = await options.voiceGateway.health();
+    return {
+      protocolVersion: PROTOCOL_VERSION,
+      eventSchemaVersion: EVENT_SCHEMA_VERSION,
+      capabilities: [
+        "health",
+        "capabilities",
+        "events",
+        "event-replay",
+        "voice-webrtc",
+        "voice-events",
+      ],
+      platform: process.platform,
+      providers: { voice: voice.status },
+    };
   };
-  const httpServer = createServer((request, response) => {
+  const handleHttp = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
     const origin = request.headers.origin;
-    if (
-      origin &&
-      (origin === "tauri://localhost" ||
-        /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/.test(origin))
-    ) {
+    if (origin && allowedOrigin(origin)) {
       response.setHeader("access-control-allow-origin", origin);
       response.setHeader("vary", "origin");
+    }
+    if (request.method === "OPTIONS") {
+      if (!allowedOrigin(origin))
+        return sendJson(response, 403, {
+          code: "ORIGIN_REJECTED",
+          message: "Origin is not allowed",
+          retryable: false,
+        });
+      response.writeHead(204, {
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers": "content-type, x-jarvis-session-token",
+        "access-control-max-age": "600",
+      });
+      response.end();
+      return;
     }
     if (request.method === "GET" && request.url === "/health")
       return sendJson(response, 200, health());
     if (request.method === "GET" && request.url === "/capabilities")
-      return sendJson(response, 200, capabilities);
+      return sendJson(response, 200, await capabilities());
+    if (
+      request.method === "POST" &&
+      (request.url === "/voice/call" || request.url === "/voice/events")
+    ) {
+      if (
+        !allowedOrigin(origin) ||
+        !tokenMatches(requestToken(request), options.sessionToken)
+      )
+        return sendJson(response, 401, {
+          code: "UNAUTHORIZED",
+          message: "A valid launch-scoped token is required",
+          retryable: false,
+        });
+      try {
+        if (request.url === "/voice/call") {
+          if (!request.headers["content-type"]?.startsWith("application/sdp"))
+            return sendJson(response, 415, {
+              code: "UNSUPPORTED_MEDIA_TYPE",
+              message: "Voice offers require application/sdp",
+              retryable: false,
+            });
+          const offerSdp = await readBody(request);
+          return sendJson(
+            response,
+            201,
+            await options.voiceGateway.createCall(
+              offerSdp,
+              AbortSignal.timeout(20_000),
+            ),
+          );
+        }
+        const signal = voiceClientSignalSchema.parse(
+          JSON.parse(await readBody(request)) as unknown,
+        );
+        await publishVoiceSignal(options.bus, signal);
+        response.writeHead(204, { "cache-control": "no-store" });
+        response.end();
+        return;
+      } catch (cause) {
+        if (cause instanceof RealtimeGatewayError)
+          return sendJson(response, cause.status, {
+            code: cause.code,
+            message: cause.message,
+            retryable: cause.retryable,
+          });
+        return sendJson(response, 400, {
+          code: "INVALID_VOICE_REQUEST",
+          message: "Voice request was malformed",
+          retryable: false,
+        });
+      }
+    }
     return sendJson(response, 404, {
       code: "NOT_FOUND",
       message: "Route not found",
       retryable: false,
+    });
+  };
+  const httpServer = createServer((request, response) => {
+    void handleHttp(request, response).catch((cause: unknown) => {
+      logger.log("error", "http.unhandled", {
+        message: cause instanceof Error ? cause.message : "Unknown failure",
+      });
+      if (!response.headersSent)
+        sendJson(response, 500, {
+          code: "INTERNAL_ERROR",
+          message: "Internal server error",
+          retryable: true,
+        });
+      else response.destroy();
     });
   });
   const websocketServer = new WebSocketServer({
@@ -146,13 +362,10 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
   });
   httpServer.on("upgrade", (request, socket, head) => {
     const origin = request.headers.origin;
-    const allowedOrigin =
-      origin === undefined ||
-      origin === "tauri://localhost" ||
-      /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/.test(origin);
+    const originAllowed = allowedOrigin(origin);
     if (
       request.url !== "/events" ||
-      !allowedOrigin ||
+      !originAllowed ||
       !tokenMatches(protocolToken(request), options.sessionToken)
     ) {
       socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");

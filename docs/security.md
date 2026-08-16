@@ -1,6 +1,6 @@
 # JARVIS Security Architecture
 
-Status: Phase 0 enforced baseline
+Status: Enforced through Phase 4
 Last updated: 2026-08-17
 
 ## Security goals
@@ -20,7 +20,7 @@ Hard defaults:
 - never store secret values in normal SQLite records, events, logs, or UI state;
 - never continuously capture microphone/screen data in V1.
 
-## Phase 0 controls in force
+## Controls in force
 
 - The configuration schema only accepts `127.0.0.1`; wildcard and LAN bindings fail validation.
 - WebSocket clients must provide the `jarvis.auth.v1` subprotocol and a launch-scoped token encoded in a second subprotocol value. The token is compared in constant time and never placed in a URL.
@@ -28,13 +28,15 @@ Hard defaults:
 - The dashboard CSP only permits its own assets and the configured loopback core channel.
 - Logs recursively redact credential-shaped keys and bearer/key-shaped values.
 - Development, test, and production databases are physically separated. SQLite contains no secret-value column or generic credential store.
-- The native host exposes only Tauri core defaults in Phase 0; system, shell, file, hotkey, screenshot, and deployment capabilities are not yet granted.
+- The native host exposes only enumerated window/display and global-shortcut registration capabilities. System, shell, file, screenshot, and deployment capabilities are not granted.
 
 Known Phase 0 gaps intentionally closed in later phases are replay/backpressure limits (Phase 1), a durable approval broker (Phase 14), and a Windows credential-store implementation before external providers are enabled.
 
 Phase 1 closes the event-channel replay/backpressure gap with a 256 KiB message ceiling, a 500-event replay ceiling, a 512 KiB slow-consumer cutoff, strict registered payload schemas, a five-second subscription deadline, and rejection of binary/repeated/malformed subscription messages.
 
 Phase 3 grants the Tauri host only enumerated monitor discovery and window create/place/focus/show/close capabilities. External web content is not loaded by the deck in this phase, and no generic shell or filesystem permission is added. Dynamically created windows must use the fixed `reference-deck` label and local application URL.
+
+Phase 4 keeps `OPENAI_API_KEY` exclusively in JARVIS Core. The renderer submits only a bounded SDP offer over an origin-checked route authenticated by the launch-scoped token. Core creates the provider call and returns only SDP/call metadata. Provider errors are reduced to bounded safe messages; upstream bodies and authorization headers are not logged. Voice lifecycle submissions use a strict discriminated schema and cannot name arbitrary event types. Microphone capture begins only after `Alt+Space` or an explicit UI action, remains visibly active, and stops on **END VOICE** or teardown. There is no wake word or continuous pre-activation cloud stream.
 
 ## Assets
 

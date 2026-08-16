@@ -1,5 +1,9 @@
-import { useEffect, useReducer, useState } from "react";
-import type { HealthSnapshot, KnownJarvisEvent } from "@jarvis/protocol";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import type {
+  HealthSnapshot,
+  KnownJarvisEvent,
+  VoiceRuntimeState,
+} from "@jarvis/protocol";
 import { connectCore, type ConnectionState } from "./core-client";
 import { DisplaySettings } from "./DisplaySettings";
 import {
@@ -9,6 +13,11 @@ import {
   saveDisplayPlacement,
 } from "./display-provider";
 import { initialHudState, reduceHudEvent } from "./hud-state";
+import {
+  createHotkeyProvider,
+  revealAndFocusDashboard,
+} from "./hotkey-provider";
+import { OpenAiWebRtcVoiceProvider } from "./voice-provider";
 import "./styles.css";
 
 function percent(value: number | undefined): string {
@@ -32,6 +41,22 @@ export function App() {
   const [showInspector, setShowInspector] = useState(false);
   const [showDisplays, setShowDisplays] = useState(false);
   const [displayCount, setDisplayCount] = useState(0);
+  const voice = useMemo(() => new OpenAiWebRtcVoiceProvider(), []);
+  const [voiceState, setVoiceState] = useState<VoiceRuntimeState>(
+    voice.state(),
+  );
+
+  const activateVoice = useCallback(async (): Promise<void> => {
+    try {
+      await revealAndFocusDashboard();
+      await voice.activate();
+      setError(undefined);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Voice activation failed",
+      );
+    }
+  }, [voice]);
 
   useEffect(() => {
     const cleanup = connectCore({
@@ -45,6 +70,39 @@ export function App() {
     });
     return cleanup;
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = voice.subscribe((state, message) => {
+      setVoiceState(state);
+      if (state === "error" || state === "unavailable") setError(message);
+    });
+    return () => {
+      unsubscribe();
+      void voice.disconnect();
+    };
+  }, [voice]);
+
+  useEffect(() => {
+    let provider: Awaited<ReturnType<typeof createHotkeyProvider>> | undefined;
+    let disposed = false;
+    void createHotkeyProvider()
+      .then(async (created) => {
+        provider = created;
+        if (disposed) return;
+        await created.register("Alt+Space", () => void activateVoice());
+      })
+      .catch((cause: unknown) => {
+        setError(
+          cause instanceof Error
+            ? `Alt+Space unavailable: ${cause.message}`
+            : "Alt+Space unavailable",
+        );
+      });
+    return () => {
+      disposed = true;
+      void provider?.unregister("Alt+Space");
+    };
+  }, [activateVoice]);
 
   useEffect(() => {
     const provider = createDisplayProvider();
@@ -185,8 +243,8 @@ export function App() {
             <div className="conversation-list">
               {hud.messages.length === 0 ? (
                 <div className="conversation-empty">
-                  <span>VOICE CHANNEL STANDBY</span>
-                  <p>Press Alt + Space when voice activation is available.</p>
+                  <span>VOICE // {voiceState.toUpperCase()}</span>
+                  <p>Press Alt + Space to reveal JARVIS and activate voice.</p>
                 </div>
               ) : (
                 hud.messages.map((message) => (
@@ -283,6 +341,28 @@ export function App() {
           value={String(hud.telemetry?.codexAgents ?? 0)}
         />
         <div className="footer-actions">
+          <button
+            className={voiceState === "idle" ? "" : "active"}
+            onClick={() => void activateVoice()}
+            type="button"
+          >
+            {voiceState === "idle" || voiceState === "unavailable"
+              ? "VOICE"
+              : voiceState.toUpperCase()}
+          </button>
+          {voiceState !== "idle" && voiceState !== "unavailable" ? (
+            <>
+              <button
+                onClick={() => void voice.setMuted(voiceState !== "muted")}
+                type="button"
+              >
+                {voiceState === "muted" ? "UNMUTE" : "MUTE"}
+              </button>
+              <button onClick={() => void voice.disconnect()} type="button">
+                END VOICE
+              </button>
+            </>
+          ) : null}
           <button onClick={() => setShowDisplays(true)} type="button">
             DISPLAYS
           </button>

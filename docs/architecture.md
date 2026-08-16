@@ -1,13 +1,13 @@
 # JARVIS Architecture
 
-Status: Phase 0 implemented foundation
+Status: Implemented through Phase 4
 Last updated: 2026-08-17
 
 ## Purpose
 
 JARVIS is a Windows-first local desktop operating layer. It combines a realtime conversation surface with asynchronous research, references, project retrieval, coding agents, Git, deployment, memory, and allow-listed system control. The architecture keeps platform APIs, model providers, and agent transports replaceable so a later macOS port does not require rewriting the core.
 
-Phase 0 implements the monorepo, shared runtime contracts, SQLite migration layer, redacted logging, authenticated localhost core transport, and a React/Tauri dashboard shell. Later subsystem sections remain the target architecture until their named phase is complete.
+Phases 0–4 implement the monorepo foundation, typed event stream, functional HUD, multi-monitor Reference Deck, global activation, and provider-based realtime voice. Later subsystem sections remain the target architecture until their named phase is complete.
 
 ## Phase 0 implementation
 
@@ -23,7 +23,7 @@ Phase 0 implements the monorepo, shared runtime contracts, SQLite migration laye
 
 The React dashboard reduces registered events into a local display projection. `jarvis.state.changed` drives the orb and mode label; telemetry values originate in `system.telemetry`; project, agent, conversation, and approval surfaces remain empty until corresponding typed events exist. Connection health is transport state rather than decorative UI state.
 
-CPU and memory use Node OS counters, disk uses filesystem statistics, and network status uses active non-loopback interfaces. Microphone/voice deliberately report `not_configured` until Phase 4. The normal conversation surface contains user-facing activity only; raw event metadata is isolated in an explicit developer inspector. Animation respects `prefers-reduced-motion`.
+CPU and memory use Node OS counters, disk uses filesystem statistics, and network status uses active non-loopback interfaces. Microphone/voice telemetry follows validated voice lifecycle events and reports the provider unavailable when its server credential is absent. The normal conversation surface contains user-facing activity only; raw event metadata is isolated in an explicit developer inspector. Animation respects `prefers-reduced-motion`.
 
 ## Phase 3 display topology and Reference Deck
 
@@ -32,6 +32,14 @@ CPU and memory use Node OS counters, disk uses filesystem statistics, and networ
 HUD and reference monitor IDs persist under `jarvis.display-placement.v1`. The default chooses the primary display for the HUD and the first distinct display for references. A three-second topology poll reconciles missing monitor IDs, moves an existing deck back into a valid work area, and falls back to the same display without crashing. On one display the deck opens as an offset, resizable 75%×80% window.
 
 The deck implements `SOURCES`, `IMAGES`, `VIDEO`, `WEB`, `CODE_DIFF`, `DOCUMENT`, and `EMPTY` modes. `reference.display.requested` is the sole display-content event contract; visual selection remains Phase 7.
+
+## Phase 4 activation and voice
+
+`HotkeyProvider` owns registration and cleanup of `Alt+Space`. The native adapter uses the Tauri global-shortcut plugin with only register/query/unregister permissions; the browser development adapter listens for the same chord only while the page is focused. Activation restores, shows, and focuses the HUD before starting voice. Registration conflicts are visible and never replace another application's shortcut.
+
+`OpenAiWebRtcVoiceProvider` keeps microphone capture, remote audio playback, mute, input/output device selection, and the WebRTC peer in WebView2. `services/voice` owns provider call creation. The dashboard posts an SDP offer to authenticated JARVIS Core; Core creates `POST /v1/realtime/calls` with the server-side `OPENAI_API_KEY` and returns only the SDP answer and non-secret call ID. No standard or temporary provider credential crosses into renderer state.
+
+Server VAD creates responses and enables response interruption. Data-channel events map to typed `voice.*` events and durable transcript messages; the HUD never infers listening/speaking state from transcript text. Unexpected peer loss has a bounded two-attempt reconnect. Explicit **END VOICE** stops tracks and the peer, so V1 has no always-listening cloud microphone.
 
 ## Architectural principles
 
@@ -124,7 +132,9 @@ The service binds to `127.0.0.1` by default. Phase 0 will make the port typed/co
 - `GET /health` — process, protocol, schema, and dependency health;
 - `GET /capabilities` — supported protocol/providers/native capabilities;
 - `WS /events` — authenticated validated event stream (replay is added in Phase 1);
-- `/v1/commands/*` — typed, narrowly scoped dashboard commands.
+- `POST /voice/call` — authenticated bounded SDP call creation;
+- `POST /voice/events` — authenticated strict voice lifecycle/transcript input;
+- `/v1/commands/*` — future typed, narrowly scoped dashboard commands.
 
 LAN binding is disabled by default and is not part of Phase 0.
 
@@ -229,7 +239,17 @@ Provider contracts are defined early in shared/core packages and implemented in 
 
 ```ts
 interface LlmProvider {}
-interface VoiceProvider {}
+interface VoiceProvider {
+  health(): Promise<ProviderHealth>;
+  state(): VoiceRuntimeState;
+  activate(): Promise<void>;
+  setMuted(muted: boolean): Promise<void>;
+  listDevices(): Promise<VoiceAudioDevice[]>;
+  setInputDevice(deviceId?: string): Promise<void>;
+  setOutputDevice(deviceId?: string): Promise<void>;
+  subscribe(listener: VoiceStateListener): () => void;
+  disconnect(): Promise<void>;
+}
 interface ResearchProvider {}
 interface ImageSearchProvider {}
 interface VideoSearchProvider {}

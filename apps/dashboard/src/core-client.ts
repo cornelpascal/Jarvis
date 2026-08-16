@@ -23,6 +23,15 @@ const endpoint =
 const sessionToken =
   import.meta.env.VITE_JARVIS_SESSION_TOKEN ?? "development-only-token";
 
+export async function coreRequest(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set("x-jarvis-session-token", sessionToken);
+  return fetch(`${endpoint}${path}`, { ...init, headers, cache: "no-store" });
+}
+
 export function connectCore(handlers: CoreClientHandlers): () => void {
   let stopped = false;
   let socket: WebSocket | undefined;

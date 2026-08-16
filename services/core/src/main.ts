@@ -10,6 +10,7 @@ import {
 import { openJarvisDatabase } from "@jarvis/database";
 import { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
+import { OpenAiRealtimeGateway } from "@jarvis/voice";
 import { createCoreServer } from "./server.js";
 import { startTelemetry } from "./telemetry.js";
 
@@ -27,6 +28,9 @@ const bus = new LocalEventBus({
 });
 const sessionToken =
   process.env.JARVIS_SESSION_TOKEN ?? randomBytes(32).toString("base64url");
+const voiceGateway = new OpenAiRealtimeGateway({
+  ...(process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : {}),
+});
 const server = createCoreServer({
   config,
   environment,
@@ -34,6 +38,7 @@ const server = createCoreServer({
   bus,
   sessionToken,
   version: manifest.version,
+  voiceGateway,
 });
 
 await server.start();
@@ -43,7 +48,12 @@ await bus.publish(
 await bus.publish(
   bus.create("jarvis.state.changed", "core", { state: "IDLE" }),
 );
-const stopTelemetry = startTelemetry(bus, paths.root);
+const stopTelemetry = startTelemetry(
+  bus,
+  paths.root,
+  2_000,
+  Boolean(process.env.OPENAI_API_KEY?.trim()),
+);
 await bus.publish(
   bus.create("system.health", "core", {
     status: "ok",

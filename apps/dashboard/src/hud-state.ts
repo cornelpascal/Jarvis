@@ -59,6 +59,55 @@ export function reduceHudEvent(
       };
     case "system.telemetry":
       return { ...state, telemetry: event.payload };
+    case "voice.connected":
+      return {
+        ...state,
+        mode: "LISTENING",
+        modeReason: "Realtime voice connected",
+        activity: appendActivity(state, "Voice channel connected"),
+      };
+    case "voice.listening":
+      return {
+        ...state,
+        mode: "LISTENING",
+        modeReason: event.payload.muted
+          ? "Microphone muted"
+          : "Listening for your voice",
+      };
+    case "voice.user_speaking":
+      return { ...state, mode: "USER_SPEAKING", modeReason: "Voice detected" };
+    case "voice.processing":
+      return { ...state, mode: "THINKING", modeReason: "Processing speech" };
+    case "voice.speaking":
+      return { ...state, mode: "SPEAKING", modeReason: "JARVIS is speaking" };
+    case "voice.interrupted":
+      return {
+        ...state,
+        mode: "LISTENING",
+        modeReason: "Response interrupted",
+        activity: appendActivity(state, "Voice response interrupted"),
+      };
+    case "voice.muted.changed":
+      return {
+        ...state,
+        modeReason: event.payload.muted
+          ? "Microphone muted"
+          : "Microphone active",
+      };
+    case "voice.disconnected":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: event.payload.reason,
+        activity: appendActivity(state, "Voice channel disconnected"),
+      };
+    case "voice.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(state, `Voice error: ${event.payload.code}`),
+      };
     case "conversation.message.added":
       return {
         ...state,

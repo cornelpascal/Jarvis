@@ -94,6 +94,33 @@ export const eventPayloadSchemas = {
     core: z.enum(["online", "degraded", "offline"]),
     codexAgents: z.int().nonnegative(),
   }),
+  "voice.connected": z.strictObject({
+    provider: z.string().min(1),
+    sessionId: z.string().min(1),
+  }),
+  "voice.listening": z.strictObject({
+    provider: z.string().min(1),
+    muted: z.boolean(),
+  }),
+  "voice.user_speaking": z.strictObject({ provider: z.string().min(1) }),
+  "voice.processing": z.strictObject({ provider: z.string().min(1) }),
+  "voice.speaking": z.strictObject({ provider: z.string().min(1) }),
+  "voice.interrupted": z.strictObject({
+    provider: z.string().min(1),
+    by: z.enum(["user", "system", "disconnect"]),
+  }),
+  "voice.muted.changed": z.strictObject({ muted: z.boolean() }),
+  "voice.disconnected": z.strictObject({
+    provider: z.string().min(1),
+    reason: z.string().min(1),
+    retryable: z.boolean(),
+  }),
+  "voice.failed": z.strictObject({
+    provider: z.string().min(1),
+    code: z.string().min(1),
+    message: z.string().min(1),
+    retryable: z.boolean(),
+  }),
   "conversation.message.added": z.strictObject({
     messageId: z.string().min(1),
     role: z.enum(["user", "assistant", "activity"]),

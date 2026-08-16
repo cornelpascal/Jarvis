@@ -1,6 +1,6 @@
 # Event protocol
 
-Status: Phase 2
+Status: Phase 4
 Last updated: 2026-08-17
 
 JARVIS state crosses process boundaries only through registered, runtime-validated events. The dashboard never parses assistant prose to infer system state.
@@ -9,20 +9,27 @@ JARVIS state crosses process boundaries only through registered, runtime-validat
 
 Every event contains a UUID, global sequence, ISO timestamp, registered namespaced type, source, schema version, payload, and optional session/correlation/causation/task/project identifiers. `packages/protocol/src/events.ts` is the authoritative registry. A new event type is unusable until its payload schema is registered there.
 
-Current types through Phase 2:
+Current types through Phase 4:
 
-| Type                                     | Purpose                                     | Durability           |
-| ---------------------------------------- | ------------------------------------------- | -------------------- |
-| `jarvis.ready`                           | Core startup and health location            | Durable              |
-| `jarvis.state.changed`                   | Authoritative central HUD state             | Durable              |
-| `jarvis.test`                            | Deterministic protocol/integration fixtures | Durable by default   |
-| `system.health`                          | Structured core/database health snapshot    | Durable              |
-| `system.telemetry`                       | CPU/RAM/disk/network/provider readings      | Transient            |
-| `conversation.message.added`             | User-facing conversation projection         | Durable when emitted |
-| `project.registered`, `project.selected` | Project-panel projection contracts          | Durable when emitted |
-| `codex.agent.progress`                   | Active-agent projection contract            | Durable when emitted |
-| `approval.requested`                     | Approval-surface projection contract        | Durable when emitted |
-| `reference.display.requested`            | Typed Reference Deck mode and items         | Durable when emitted |
+| Type                                      | Purpose                                     | Durability           |
+| ----------------------------------------- | ------------------------------------------- | -------------------- |
+| `jarvis.ready`                            | Core startup and health location            | Durable              |
+| `jarvis.state.changed`                    | Authoritative central HUD state             | Durable              |
+| `jarvis.test`                             | Deterministic protocol/integration fixtures | Durable by default   |
+| `system.health`                           | Structured core/database health snapshot    | Durable              |
+| `system.telemetry`                        | CPU/RAM/disk/network/provider readings      | Transient            |
+| `conversation.message.added`              | User-facing conversation projection         | Durable when emitted |
+| `project.registered`, `project.selected`  | Project-panel projection contracts          | Durable when emitted |
+| `codex.agent.progress`                    | Active-agent projection contract            | Durable when emitted |
+| `approval.requested`                      | Approval-surface projection contract        | Durable when emitted |
+| `reference.display.requested`             | Typed Reference Deck mode and items         | Durable when emitted |
+| `voice.connected`, `voice.listening`      | Realtime voice connection/readiness         | Transient            |
+| `voice.user_speaking`, `voice.processing` | Input turn lifecycle                        | Transient            |
+| `voice.speaking`, `voice.interrupted`     | Output audio/barge-in lifecycle             | Transient            |
+| `voice.muted.changed`                     | Explicit microphone mute state              | Transient            |
+| `voice.disconnected`, `voice.failed`      | Visible voice termination/failure           | Transient            |
+
+Voice lifecycle events are accepted only through the authenticated `/voice/events` command boundary and are revalidated before publication. Input and assistant transcript completions become durable `conversation.message.added` events; high-frequency audio deltas never enter the event bus or SQLite.
 
 Payloads are strict: unknown fields, unregistered types, invalid identifiers, oversized events, and invalid domain values are rejected before listeners or persistence.
 
