@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 2 — DONE**
-Next phase: **Phase 3 — NOT_STARTED**
+Current phase: **Phase 3 — DONE**
+Next phase: **Phase 4 — NOT_STARTED**
 
 ## Status definitions
 
@@ -36,7 +36,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 0 — Repository bootstrap             | DONE        | Runnable monorepo, desktop shell, core health connection, config/database/logging |
 | 1 — Event bus                        | DONE        | Validated typed events, replayable history, dashboard subscription                |
 | 2 — Functional HUD                   | DONE        | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
-| 3 — Multi-monitor Reference Deck     | NOT_STARTED | Display discovery, persisted placement, second window/fallback                    |
+| 3 — Multi-monitor Reference Deck     | DONE        | Display discovery, persisted placement, second window/fallback                    |
 | 4 — Alt+Space + voice                | NOT_STARTED | Windows activation and provider-based spoken conversation                         |
 | 5 — Orchestrator/tool router         | NOT_STARTED | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
 | 6 — Web research                     | NOT_STARTED | Fresh structured research with sources and streamed events                        |
@@ -77,7 +77,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 - **Acceptance:** `pnpm install` and `pnpm dev` start core and dashboard; HUD shell reports real connected health/capabilities; core binds loopback; restart preserves settings/database; no AI behavior; architecture/local port/data/log/startup/recovery documented.
 - **Tests:** Config schema/default/override tests; migration/repository tests; log redaction tests; authenticated health/handshake integration; dashboard reconnect; Tauri and workspace builds; PowerShell health smoke test.
 - **Evidence:** Workspace format/lint/typecheck passed; 7 unit tests passed; core and dashboard production builds passed; live smoke returned core/database `ok`, dashboard HTTP 200, and authenticated `jarvis.auth.v1` WebSocket negotiation.
-- **Known limitations:** Rust/MSVC are not installed on the current machine, so the native Tauri executable was not compiled during this phase; the Rust shell is present and frontend/core builds are green. Event replay/reconnect and durable log files are Phase 1/observability follow-ups. `corepack pnpm` or `pnpm.cmd` is required in PowerShell installations that block `.ps1` shims.
+- **Known limitations:** The native executable was not compiled during Phase 0; this was resolved in Phase 3 by installing the user-scoped Rust toolchain and completing a native build/smoke. Persistent rotating log files remain later observability work. `corepack pnpm` or `pnpm.cmd` is required in PowerShell installations that block `.ps1` shims.
 
 ### Phase 1 — Event bus
 
@@ -101,12 +101,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 3 — Multi-monitor Reference Deck
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Native display discovery, HUD/reference monitor settings, second window lifecycle, modes contract, placement persistence, hot-plug handling, single-monitor overlay/window fallback.
 - **Dependencies:** Phase 2 shell/state; native host interfaces.
 - **Acceptance:** Displays detected; monitor choices persist; Reference Deck opens/moves correctly; disconnect/reconnect recovers; single-monitor systems do not fail.
 - **Tests:** Display adapter unit mock, settings migration, window command integration, mode rendering, hot-plug/single-monitor fixtures, multi-monitor manual smoke test when hardware is available.
-- **Known risks:** DPI/coordinate differences, monitor identifiers changing, window focus behavior, remote desktop/virtual displays.
+- **Evidence:** 17 tests pass, including primary/secondary selection and disconnected-display recovery. Workspace and dashboard builds pass. Tauri compiled a real Windows executable and the native smoke kept the dashboard running against a healthy core.
+- **Known limitations:** The current machine exposes only one physical display to automated validation, so two-monitor placement is contract/fixture-tested; final hardware validation remains required. Display preferences use WebView local storage until the settings repository is surfaced through core. Monitor identity is a composite of name/geometry and is intentionally reconciled after topology changes.
 
 ### Phase 4 — Alt+Space + voice
 

@@ -56,6 +56,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@jarvis/os-abstractions':
+        specifier: workspace:*
+        version: link:../../packages/os-abstractions
       '@jarvis/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol

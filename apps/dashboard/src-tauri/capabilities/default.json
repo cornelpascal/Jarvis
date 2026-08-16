@@ -2,6 +2,16 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Minimal dashboard capability set",
-  "windows": ["main"],
-  "permissions": ["core:default"]
+  "windows": ["main", "reference-deck"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-available-monitors",
+    "core:window:allow-primary-monitor",
+    "core:window:allow-create",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size",
+    "core:window:allow-set-focus",
+    "core:window:allow-show",
+    "core:window:allow-close"
+  ]
 }

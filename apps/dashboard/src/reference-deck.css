@@ -1,0 +1,172 @@
+:root {
+  background: #020608;
+}
+body {
+  margin: 0;
+}
+.deck {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr) 38px;
+  color: #dff8ff;
+  background: radial-gradient(
+    circle at center,
+    #0a2832 0,
+    #041015 35%,
+    #020608 75%
+  );
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+}
+.deck header,
+.deck footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  border-color: rgb(69 220 255 / 20%);
+  border-style: solid;
+  background: rgb(2 8 11 / 90%);
+  color: #6e929e;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+.deck header {
+  border-width: 0 0 1px;
+}
+.deck footer {
+  border-width: 1px 0 0;
+}
+.deck header b {
+  margin-right: 10px;
+  color: #45dcff;
+  font-size: 12px;
+}
+.deck header div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.deck header i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffcf65;
+  box-shadow: 0 0 8px currentColor;
+}
+.deck header i.connected {
+  background: #58ebcb;
+}
+.deck header i.disconnected {
+  background: #ff667b;
+}
+.deck-stage {
+  min-height: 0;
+  padding: 18px;
+  overflow: auto;
+}
+.deck-empty {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+}
+.deck-reticle {
+  width: 190px;
+  height: 190px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgb(69 220 255 / 30%);
+  border-radius: 50%;
+  animation: deck-spin 30s linear infinite;
+}
+.deck-reticle::before {
+  content: "";
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border: 1px solid #1c7287;
+  border-radius: 50%;
+}
+.deck-reticle span {
+  width: 70px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #45dcff;
+  border-radius: 50%;
+  color: #45dcff;
+  font-size: 28px;
+  box-shadow: 0 0 35px rgb(69 220 255 / 24%);
+  animation: deck-spin 30s linear infinite reverse;
+}
+.deck-empty h1 {
+  margin: 25px 0 6px;
+  color: #72cfe3;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+}
+.deck-empty p {
+  color: #52727e;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+.deck-grid > h1 {
+  grid-column: 1 / -1;
+  margin: 0 0 8px;
+  color: #91d9e8;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+}
+.deck-grid article {
+  min-height: 180px;
+  overflow: hidden;
+  border: 1px solid rgb(69 220 255 / 18%);
+  background: rgb(7 20 25 / 85%);
+}
+.deck-grid article img {
+  display: block;
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+}
+.deck-grid article div {
+  padding: 14px;
+}
+.deck-grid small {
+  color: #45dcff;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+}
+.deck-grid h2 {
+  margin: 6px 0 0;
+  color: #c2e2e9;
+  font-size: 12px;
+  font-weight: 500;
+}
+.deck-grid pre {
+  overflow: auto;
+  white-space: pre-wrap;
+  color: #94b2bb;
+  font:
+    10px Consolas,
+    monospace;
+}
+@keyframes deck-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .deck-reticle,
+  .deck-reticle span {
+    animation: none;
+  }
+}

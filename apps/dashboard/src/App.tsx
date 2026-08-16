@@ -1,6 +1,13 @@
 import { useEffect, useReducer, useState } from "react";
 import type { HealthSnapshot, KnownJarvisEvent } from "@jarvis/protocol";
 import { connectCore, type ConnectionState } from "./core-client";
+import { DisplaySettings } from "./DisplaySettings";
+import {
+  createDisplayProvider,
+  loadDisplayPlacement,
+  resolvePlacement,
+  saveDisplayPlacement,
+} from "./display-provider";
 import { initialHudState, reduceHudEvent } from "./hud-state";
 import "./styles.css";
 
@@ -23,6 +30,8 @@ export function App() {
   >([]);
   const [error, setError] = useState<string>();
   const [showInspector, setShowInspector] = useState(false);
+  const [showDisplays, setShowDisplays] = useState(false);
+  const [displayCount, setDisplayCount] = useState(0);
 
   useEffect(() => {
     const cleanup = connectCore({
@@ -35,6 +44,32 @@ export function App() {
       onError: (cause) => setError(cause.message),
     });
     return cleanup;
+  }, []);
+
+  useEffect(() => {
+    const provider = createDisplayProvider();
+    const refresh = async (): Promise<void> => {
+      try {
+        const monitors = await provider.listMonitors();
+        setDisplayCount(monitors.length);
+        const saved = loadDisplayPlacement();
+        const resolved = resolvePlacement(monitors, saved);
+        if (
+          resolved &&
+          (resolved.dashboardMonitorId !== saved.dashboardMonitorId ||
+            resolved.referenceMonitorId !== saved.referenceMonitorId)
+        ) {
+          saveDisplayPlacement(resolved);
+          await provider.placeDashboard(resolved.dashboardMonitorId);
+          await provider.reconcilePlacement(resolved);
+        }
+      } catch {
+        setDisplayCount(0);
+      }
+    };
+    void refresh();
+    const poll = setInterval(() => void refresh(), 3_000);
+    return () => clearInterval(poll);
   }, []);
 
   const projects = Object.values(hud.projects);
@@ -195,6 +230,10 @@ export function App() {
                 <dd>{events.length}</dd>
               </div>
               <div>
+                <dt>DISPLAYS</dt>
+                <dd>{displayCount || "—"}</dd>
+              </div>
+              <div>
                 <dt>UPTIME</dt>
                 <dd>
                   {health
@@ -243,14 +282,22 @@ export function App() {
           label="CODEX"
           value={String(hud.telemetry?.codexAgents ?? 0)}
         />
-        <button
-          className="inspector-toggle"
-          onClick={() => setShowInspector((shown) => !shown)}
-          type="button"
-        >
-          EVENTS
-        </button>
+        <div className="footer-actions">
+          <button onClick={() => setShowDisplays(true)} type="button">
+            DISPLAYS
+          </button>
+          <button
+            onClick={() => setShowInspector((shown) => !shown)}
+            type="button"
+          >
+            EVENTS
+          </button>
+        </div>
       </footer>
+
+      {showDisplays ? (
+        <DisplaySettings onClose={() => setShowDisplays(false)} />
+      ) : null}
 
       {showInspector ? (
         <aside

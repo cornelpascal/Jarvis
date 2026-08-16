@@ -94,6 +94,7 @@ export function reduceHudEvent(
         ),
       };
     case "jarvis.test":
+    case "reference.display.requested":
       return state;
   }
 }

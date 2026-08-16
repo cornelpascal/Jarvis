@@ -128,6 +128,34 @@ export const eventPayloadSchemas = {
       z.literal(3),
     ]),
   }),
+  "reference.display.requested": z.strictObject({
+    mode: z.enum([
+      "SOURCES",
+      "IMAGES",
+      "VIDEO",
+      "WEB",
+      "CODE_DIFF",
+      "DOCUMENT",
+      "EMPTY",
+    ]),
+    title: z.string().min(1).optional(),
+    items: z.array(
+      z.strictObject({
+        id: z.string().min(1),
+        type: z.enum([
+          "source",
+          "image",
+          "video",
+          "web",
+          "code_diff",
+          "document",
+        ]),
+        title: z.string().min(1),
+        uri: z.url().optional(),
+        content: z.string().optional(),
+      }),
+    ),
+  }),
 } as const;
 
 export type EventPayloadMap = {

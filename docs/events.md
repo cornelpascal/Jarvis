@@ -22,6 +22,7 @@ Current types through Phase 2:
 | `project.registered`, `project.selected` | Project-panel projection contracts          | Durable when emitted |
 | `codex.agent.progress`                   | Active-agent projection contract            | Durable when emitted |
 | `approval.requested`                     | Approval-surface projection contract        | Durable when emitted |
+| `reference.display.requested`            | Typed Reference Deck mode and items         | Durable when emitted |
 
 Payloads are strict: unknown fields, unregistered types, invalid identifiers, oversized events, and invalid domain values are rejected before listeners or persistence.
 

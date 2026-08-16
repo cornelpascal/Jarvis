@@ -30,6 +30,16 @@ The native shell can be started after Rust/MSVC installation:
 corepack pnpm --filter @jarvis/dashboard tauri dev
 ```
 
+Compile and smoke the native host without creating an installer:
+
+```powershell
+$env:Path="$env:USERPROFILE\.cargo\bin;$env:Path"
+corepack pnpm --filter @jarvis/dashboard tauri build --debug --no-bundle
+corepack pnpm smoke:native
+```
+
+Display routing is available from **DISPLAYS** in the bottom HUD rail. The selected HUD and Reference Deck monitors persist across restarts. Disconnecting the selected reference monitor moves an existing deck to the remaining valid display; a single-monitor system uses a separate offset window.
+
 ## Data and recovery
 
 | Environment | Default directory                   |

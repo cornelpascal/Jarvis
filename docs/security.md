@@ -34,6 +34,8 @@ Known Phase 0 gaps intentionally closed in later phases are replay/backpressure 
 
 Phase 1 closes the event-channel replay/backpressure gap with a 256 KiB message ceiling, a 500-event replay ceiling, a 512 KiB slow-consumer cutoff, strict registered payload schemas, a five-second subscription deadline, and rejection of binary/repeated/malformed subscription messages.
 
+Phase 3 grants the Tauri host only enumerated monitor discovery and window create/place/focus/show/close capabilities. External web content is not loaded by the deck in this phase, and no generic shell or filesystem permission is added. Dynamically created windows must use the fixed `reference-deck` label and local application URL.
+
 ## Assets
 
 Protected assets include:

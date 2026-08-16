@@ -18,7 +18,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "health": "powershell -ExecutionPolicy Bypass -File scripts/health-check.ps1"
+    "health": "powershell -ExecutionPolicy Bypass -File scripts/health-check.ps1",
+    "smoke:native": "node scripts/smoke-native.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",

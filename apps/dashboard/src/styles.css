@@ -544,8 +544,13 @@ dd {
     monospace;
   font-weight: 400;
 }
-.inspector-toggle,
-.event-inspector button {
+.footer-actions {
+  display: flex;
+  align-items: stretch;
+}
+.footer-actions button,
+.event-inspector button,
+.display-settings button {
   border: 0;
   color: var(--cyan);
   background: transparent;
@@ -553,8 +558,65 @@ dd {
   font-size: 9px;
   letter-spacing: 0.15em;
 }
-.inspector-toggle {
-  padding: 0 15px;
+.footer-actions button {
+  padding: 0 12px;
+  border-left: 1px solid rgb(69 220 255 / 9%);
+}
+
+.modal-backdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 4 6 / 72%);
+  backdrop-filter: blur(5px);
+}
+.display-settings {
+  width: min(520px, calc(100vw - 40px));
+  border: 1px solid #286779;
+  background: #061117;
+  box-shadow: 0 0 70px #000;
+}
+.settings-body {
+  padding: 22px;
+}
+.settings-body > p {
+  margin: 0 0 20px;
+  color: #688792;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.settings-body label {
+  display: grid;
+  gap: 7px;
+  margin: 14px 0;
+  color: #6b8d98;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+.settings-body select {
+  width: 100%;
+  border: 1px solid #1b4c5a;
+  padding: 10px;
+  color: #c4e6ee;
+  background: #06151b;
+  font:
+    10px "Segoe UI",
+    sans-serif;
+}
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+.settings-actions button {
+  padding: 10px 13px;
+  border: 1px solid #246175;
+}
+.settings-error {
+  color: #ff7488 !important;
 }
 
 .event-inspector {

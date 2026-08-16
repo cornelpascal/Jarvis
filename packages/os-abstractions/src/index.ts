@@ -18,3 +18,16 @@ export interface MonitorInfo {
   height: number;
   scaleFactor: number;
 }
+
+export interface DisplayPlacement {
+  dashboardMonitorId?: string;
+  referenceMonitorId?: string;
+}
+
+export interface DisplayProvider {
+  listMonitors(): Promise<MonitorInfo[]>;
+  placeDashboard(monitorId: string): Promise<void>;
+  openReferenceDeck(monitorId?: string): Promise<void>;
+  closeReferenceDeck(): Promise<void>;
+  reconcilePlacement(placement: DisplayPlacement): Promise<void>;
+}

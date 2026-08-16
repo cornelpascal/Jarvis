@@ -25,6 +25,14 @@ The React dashboard reduces registered events into a local display projection. `
 
 CPU and memory use Node OS counters, disk uses filesystem statistics, and network status uses active non-loopback interfaces. Microphone/voice deliberately report `not_configured` until Phase 4. The normal conversation surface contains user-facing activity only; raw event metadata is isolated in an explicit developer inspector. Animation respects `prefers-reduced-motion`.
 
+## Phase 3 display topology and Reference Deck
+
+`DisplayProvider` isolates monitor/window operations. The Tauri implementation uses native monitor work areas, physical-to-logical DPI conversion, and a separately labeled `reference-deck` WebView window. The browser implementation exposes one primary display and opens the deck as a popup for web-only development.
+
+HUD and reference monitor IDs persist under `jarvis.display-placement.v1`. The default chooses the primary display for the HUD and the first distinct display for references. A three-second topology poll reconciles missing monitor IDs, moves an existing deck back into a valid work area, and falls back to the same display without crashing. On one display the deck opens as an offset, resizable 75%×80% window.
+
+The deck implements `SOURCES`, `IMAGES`, `VIDEO`, `WEB`, `CODE_DIFF`, `DOCUMENT`, and `EMPTY` modes. `reference.display.requested` is the sole display-content event contract; visual selection remains Phase 7.
+
 ## Architectural principles
 
 1. The Node/TypeScript core owns business rules and authoritative state.
