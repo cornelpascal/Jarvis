@@ -494,6 +494,23 @@ body {
   color: #a79062;
   font-size: 10px;
 }
+.message-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+.message-citations a {
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid rgb(69 220 255 / 18%);
+  padding: 3px 6px;
+  color: #73cfe2;
+  font-size: 8px;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .conversation-composer {
   display: grid;
   grid-template-columns: 1fr auto;

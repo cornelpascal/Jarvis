@@ -110,6 +110,44 @@ export function reduceHudEvent(
         modeReason: event.payload.message,
         activity: appendActivity(state, `Voice error: ${event.payload.code}`),
       };
+    case "research.started":
+      return {
+        ...state,
+        mode: "SEARCHING",
+        modeReason: `Researching: ${event.payload.query}`,
+        activity: appendActivity(state, "Research started"),
+      };
+    case "research.searching":
+      return {
+        ...state,
+        mode: "RESEARCHING",
+        modeReason: `Searching with ${event.payload.provider}`,
+      };
+    case "research.source_found":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `Source: ${event.payload.source.title}`,
+        ),
+      };
+    case "research.completed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: `Research complete · ${String(event.payload.sourceCount)} sources`,
+        activity: appendActivity(state, "Research complete"),
+      };
+    case "research.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(
+          state,
+          `Research failed: ${event.payload.code}`,
+        ),
+      };
     case "conversation.message.added":
       return {
         ...state,

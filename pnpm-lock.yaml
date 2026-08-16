@@ -156,6 +156,9 @@ importers:
       '@jarvis/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@jarvis/research':
+        specifier: workspace:*
+        version: link:../research
       '@jarvis/voice':
         specifier: workspace:*
         version: link:../voice
@@ -172,6 +175,12 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
+
+  services/research:
+    dependencies:
+      '@jarvis/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
 
   services/voice:
     dependencies:

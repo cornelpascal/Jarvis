@@ -15,6 +15,7 @@
     "@jarvis/event-bus": "workspace:*",
     "@jarvis/logging": "workspace:*",
     "@jarvis/protocol": "workspace:*",
+    "@jarvis/research": "workspace:*",
     "@jarvis/voice": "workspace:*",
     "ws": "^8.18.3",
     "yaml": "^2.8.1",

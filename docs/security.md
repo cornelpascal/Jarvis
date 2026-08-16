@@ -40,6 +40,8 @@ Phase 4 keeps `OPENAI_API_KEY` exclusively in JARVIS Core. The renderer submits 
 
 Phase 5 treats routing as classification, never authorization. `/commands/route` accepts only authenticated, origin-checked, size-bounded JSON with `provenance.origin=user`; arbitrary provenance and fields fail schema validation. Decisions expose a bounded allow-listed shortlist and no executable arguments or approval flag. Injection-shaped text can select a consequential category but cannot invoke it. Execution remains absent until the owning subsystem and permission phase exist.
 
+Phase 6 gives the research provider only HTTPS access to the configured model/search API. It receives no shell, filesystem, browser-control, Codex, Git, system, or permission capability. All returned URLs must use HTTP(S), remain explicitly untrusted, and are never interpreted as commands. Missing citations invalidate a result. The API key stays in Core request headers and provider response bodies are not logged or forwarded. Research failures expose only bounded codes/messages.
+
 ## Assets
 
 Protected assets include:

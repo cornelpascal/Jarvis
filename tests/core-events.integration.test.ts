@@ -17,6 +17,10 @@ import {
   createCoreServer,
   type CoreServer,
 } from "../services/core/src/server.js";
+import type {
+  ResearchProvider,
+  ResearchRequest,
+} from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
 
 const voiceGateway: RealtimeCallGateway = {
@@ -30,6 +34,37 @@ const voiceGateway: RealtimeCallGateway = {
       answerSdp: offerSdp.replace("offer", "answer"),
       callId: "call_test",
       provider: "openai-realtime",
+    }),
+};
+
+const researchProvider: ResearchProvider = {
+  health: () =>
+    Promise.resolve({ status: "available", capabilities: ["web-search"] }),
+  research: (request: ResearchRequest) =>
+    Promise.resolve({
+      requestId: request.requestId,
+      answer: "Humanoid robotics is advancing.",
+      sources: [
+        {
+          id: "source-1",
+          title: "Robotics source",
+          url: "https://example.com/robotics",
+          retrievedAt: new Date().toISOString(),
+          provenance: {
+            origin: "web",
+            trusted: false,
+            source: "https://example.com/robotics",
+          },
+        },
+      ],
+      images: [],
+      videos: [],
+      visualRecommendation: {
+        display: false,
+        score: 0,
+        reason: "Reference evaluation is deferred to Phase 7",
+        preferredMode: "none",
+      },
     }),
 };
 
@@ -111,6 +146,7 @@ describe("core event stream", () => {
       sessionToken: "integration-token",
       version: "test",
       voiceGateway,
+      researchProvider,
     });
     await server.start();
     await bus.publish(
@@ -162,6 +198,7 @@ describe("core event stream", () => {
       sessionToken: "valid-token",
       version: "test",
       voiceGateway,
+      researchProvider,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -188,6 +225,7 @@ describe("core event stream", () => {
       sessionToken: "voice-token",
       version: "test",
       voiceGateway,
+      researchProvider,
     });
     await server.start();
     const unauthorized = await fetch(
@@ -241,6 +279,14 @@ describe("core event stream", () => {
       payload: { provider: "openai-realtime", muted: false },
     });
 
+    const researchComplete = new Promise<KnownJarvisEvent>((resolve) => {
+      const unsubscribe = bus.subscribe((event) => {
+        if (event.type === "research.completed") {
+          unsubscribe();
+          resolve(event);
+        }
+      });
+    });
     const route = await fetch(
       `http://127.0.0.1:${String(port)}/commands/route`,
       {
@@ -259,5 +305,9 @@ describe("core event stream", () => {
     );
     expect(route.status).toBe(200);
     await expect(route.json()).resolves.toMatchObject({ route: "research" });
+    await expect(researchComplete).resolves.toMatchObject({
+      type: "research.completed",
+      payload: { sourceCount: 1 },
+    });
   });
 });

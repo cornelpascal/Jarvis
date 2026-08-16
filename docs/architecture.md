@@ -47,6 +47,12 @@ Server VAD creates responses and enables response interruption. Data-channel eve
 
 The authenticated `POST /commands/route` boundary records the user message and publishes `conversation.route.selected`; completed user voice transcripts enter the same router. Routing is selection only: decisions contain no arguments, approval, receipt, or executor capability. Phase 5 deliberately does not execute the selected research/project/coding/browser/system route. The HUD text composer and current-route readout are projections of these real decisions.
 
+## Phase 6 web research
+
+Research-route decisions start an asynchronous job and return the routing response without waiting for network/model completion. `OpenAiResearchProvider` uses the server-side Responses API with the built-in web-search tool, a 30-second deadline, and no host tools. It normalizes output text, URL citations, and search-action source lists into `ResearchResult`; results without an answer or attributable HTTP(S) source fail closed.
+
+Every source is deduplicated, timestamped, and labeled `{ origin: "web", trusted: false }`. Core emits started/searching/source-found/completed/failed lifecycle events, persists the assistant answer with citation links, and drives the HUD through actual SEARCHING/RESEARCHING/error states. Images, videos, and the visual recommendation remain explicit empty/deferred values until Phase 7.
+
 ## Architectural principles
 
 1. The Node/TypeScript core owns business rules and authoritative state.

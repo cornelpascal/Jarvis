@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 5 — DONE**
-Next phase: **Phase 6 — NOT_STARTED**
+Current phase: **Phase 6 — DONE**
+Next phase: **Phase 7 — NOT_STARTED**
 
 ## Status definitions
 
@@ -39,7 +39,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 3 — Multi-monitor Reference Deck     | DONE        | Display discovery, persisted placement, second window/fallback                    |
 | 4 — Alt+Space + voice                | DONE        | Windows activation and provider-based spoken conversation                         |
 | 5 — Orchestrator/tool router         | DONE        | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
-| 6 — Web research                     | NOT_STARTED | Fresh structured research with sources and streamed events                        |
+| 6 — Web research                     | DONE        | Fresh structured research with sources and streamed events                        |
 | 7 — Smart References                 | NOT_STARTED | Independent visual-value evaluator and asynchronous rendering                     |
 | 8 — Browser Agent                    | NOT_STARTED | Isolated Playwright Chromium and typed browser actions                            |
 | 9 — Project Registry                 | NOT_STARTED | Configurable project discovery and metadata                                       |
@@ -131,12 +131,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 6 — Web research
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** `ResearchProvider`, current public search/fetch, structured sources, citations, partial progress, provenance/taint, cancellation/timeouts/cache, result persistence.
 - **Dependencies:** Phase 5 routing, events, network configuration, secret provider if an API requires it.
 - **Acceptance:** Fresh research returns an answer and source metadata; events stream to HUD; sources are attributable; failures degrade cleanly; research worker has no shell/system/Codex authority.
 - **Tests:** Provider mocks/fixtures, citation/source normalization, timeout/retry rules, untrusted content propagation, cancellation, no-secret logs, end-to-end researched answer without visuals.
-- **Known risks:** Search API availability/cost, source quality, robots/rate limits, malicious content, stale cache.
+- **Evidence:** 40 unit/integration tests pass. Fixtures cover Responses web-search output, URL-citation deduplication/title enrichment, untrusted provenance, unsourced-output rejection, server-only key use, automatic research dispatch from routing, streamed lifecycle events, citations in conversation state, and failure-safe behavior. Format/lint/typecheck/build and native smoke pass.
+- **Known limitations:** This machine has no `OPENAI_API_KEY`, so current public search cannot be live-smoked; runtime health reports research unavailable while deterministic provider/integration fixtures remain functional. Phase 6 uses a completed response internally while streaming typed lifecycle/source events to the HUD; token-delta speech overlap is future optimization. Visual media discovery remains Phase 7.
 
 ### Phase 7 — Smart References
 

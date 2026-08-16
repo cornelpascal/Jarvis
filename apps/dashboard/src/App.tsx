@@ -293,6 +293,20 @@ export function App() {
                         : message.role.toUpperCase()}
                     </small>
                     <p>{message.content}</p>
+                    {message.citations.length > 0 ? (
+                      <div className="message-citations">
+                        {message.citations.map((citation) => (
+                          <a
+                            href={citation.url}
+                            key={citation.url}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {citation.title}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
                   </article>
                 ))
               )}

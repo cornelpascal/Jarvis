@@ -219,6 +219,39 @@ export const eventPayloadSchemas = {
       }),
     ),
   }),
+  "research.started": z.strictObject({
+    requestId: z.uuid(),
+    query: z.string().min(1),
+  }),
+  "research.searching": z.strictObject({
+    requestId: z.uuid(),
+    provider: z.string().min(1),
+  }),
+  "research.source_found": z.strictObject({
+    requestId: z.uuid(),
+    source: z.strictObject({
+      id: z.string().min(1),
+      title: z.string().min(1),
+      url: z.url(),
+      retrievedAt: z.iso.datetime(),
+      provenance: z.strictObject({
+        origin: z.literal("web"),
+        trusted: z.literal(false),
+        source: z.url(),
+      }),
+    }),
+  }),
+  "research.completed": z.strictObject({
+    requestId: z.uuid(),
+    answer: z.string().min(1),
+    sourceCount: z.int().nonnegative(),
+  }),
+  "research.failed": z.strictObject({
+    requestId: z.uuid(),
+    code: z.string().min(1),
+    message: z.string().min(1),
+    retryable: z.boolean(),
+  }),
 } as const;
 
 export type EventPayloadMap = {

@@ -20,11 +20,14 @@ import {
   type CapabilityManifest,
   type EventStreamServerMessage,
   type HealthSnapshot,
+  type ResearchProvider,
+  type ResearchRequest,
   type RouteDecision,
   type RouteRequest,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
 import { RealtimeGatewayError, type RealtimeCallGateway } from "@jarvis/voice";
+import { ResearchProviderError } from "@jarvis/research";
 import { IntentRouter } from "./orchestrator.js";
 
 const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -39,6 +42,7 @@ export interface CoreServerOptions {
   sessionToken: string;
   version: string;
   voiceGateway: RealtimeCallGateway;
+  researchProvider: ResearchProvider;
 }
 
 export interface CoreServer {
@@ -132,6 +136,7 @@ async function publishVoiceSignal(
   bus: LocalEventBus,
   signal: VoiceClientSignal,
   router: IntentRouter,
+  researchProvider: ResearchProvider,
 ): Promise<void> {
   const provider = "openai-realtime";
   switch (signal.type) {
@@ -206,12 +211,19 @@ async function publishVoiceSignal(
           citations: [],
         }),
       );
-      if (signal.role === "user")
-        await publishRouteDecision(bus, router, {
+      if (signal.role === "user") {
+        const request = {
           requestId: randomUUID(),
           text: signal.content,
           provenance: { origin: "user", trusted: true },
-        });
+        } as const;
+        const decision = await publishRouteDecision(bus, router, request);
+        if (decision.route === "research")
+          void executeResearch(bus, researchProvider, {
+            requestId: request.requestId,
+            query: request.text,
+          });
+      }
   }
 }
 
@@ -225,6 +237,82 @@ async function publishRouteDecision(
     bus.create("conversation.route.selected", "core.orchestrator", decision),
   );
   return decision;
+}
+
+async function executeResearch(
+  bus: LocalEventBus,
+  provider: ResearchProvider,
+  request: ResearchRequest,
+): Promise<void> {
+  await bus.publish(bus.create("research.started", "core.research", request));
+  await bus.publish(
+    bus.create("jarvis.state.changed", "core.research", {
+      state: "SEARCHING",
+      reason: "Researching current public information",
+    }),
+  );
+  await bus.publish(
+    bus.create("research.searching", "core.research", {
+      requestId: request.requestId,
+      provider: "openai-web-search",
+    }),
+    { durable: false },
+  );
+  try {
+    const result = await provider.research(request, {
+      signal: new AbortController().signal,
+      deadline: new Date(Date.now() + 30_000),
+      correlationId: request.requestId,
+    });
+    for (const source of result.sources)
+      await bus.publish(
+        bus.create("research.source_found", "core.research", {
+          requestId: request.requestId,
+          source,
+        }),
+      );
+    await bus.publish(
+      bus.create("conversation.message.added", "core.research", {
+        messageId: randomUUID(),
+        role: "assistant",
+        content: result.answer,
+        citations: result.sources.map(({ title, url }) => ({ title, url })),
+      }),
+    );
+    await bus.publish(
+      bus.create("research.completed", "core.research", {
+        requestId: request.requestId,
+        answer: result.answer,
+        sourceCount: result.sources.length,
+      }),
+    );
+    await bus.publish(
+      bus.create("jarvis.state.changed", "core.research", { state: "IDLE" }),
+    );
+  } catch (cause) {
+    const error =
+      cause instanceof ResearchProviderError
+        ? cause
+        : new ResearchProviderError(
+            "RESEARCH_FAILED",
+            "Web research failed",
+            true,
+          );
+    await bus.publish(
+      bus.create("research.failed", "core.research", {
+        requestId: request.requestId,
+        code: error.code,
+        message: error.message,
+        retryable: error.retryable,
+      }),
+    );
+    await bus.publish(
+      bus.create("jarvis.state.changed", "core.research", {
+        state: "ERROR",
+        reason: error.message,
+      }),
+    );
+  }
 }
 
 function sendStreamMessage(
@@ -262,7 +350,10 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
     environment: options.environment,
   });
   const capabilities = async (): Promise<CapabilityManifest> => {
-    const voice = await options.voiceGateway.health();
+    const [voice, research] = await Promise.all([
+      options.voiceGateway.health(),
+      options.researchProvider.health(),
+    ]);
     return {
       protocolVersion: PROTOCOL_VERSION,
       eventSchemaVersion: EVENT_SCHEMA_VERSION,
@@ -274,9 +365,10 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         "voice-webrtc",
         "voice-events",
         "request-routing",
+        "web-research",
       ],
       platform: process.platform,
-      providers: { voice: voice.status },
+      providers: { voice: voice.status, research: research.status },
     };
   };
   const handleHttp = async (
@@ -358,16 +450,27 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               citations: [],
             }),
           );
-          return sendJson(
-            response,
-            200,
-            await publishRouteDecision(options.bus, router, routeRequest),
+          const decision = await publishRouteDecision(
+            options.bus,
+            router,
+            routeRequest,
           );
+          if (decision.route === "research")
+            void executeResearch(options.bus, options.researchProvider, {
+              requestId: routeRequest.requestId,
+              query: routeRequest.text,
+            });
+          return sendJson(response, 200, decision);
         }
         const signal = voiceClientSignalSchema.parse(
           JSON.parse(await readBody(request)) as unknown,
         );
-        await publishVoiceSignal(options.bus, signal, router);
+        await publishVoiceSignal(
+          options.bus,
+          signal,
+          router,
+          options.researchProvider,
+        );
         response.writeHead(204, { "cache-control": "no-store" });
         response.end();
         return;

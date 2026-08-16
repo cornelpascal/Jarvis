@@ -11,6 +11,7 @@ import { openJarvisDatabase } from "@jarvis/database";
 import { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
 import { OpenAiRealtimeGateway } from "@jarvis/voice";
+import { OpenAiResearchProvider } from "@jarvis/research";
 import { createCoreServer } from "./server.js";
 import { startTelemetry } from "./telemetry.js";
 
@@ -31,6 +32,9 @@ const sessionToken =
 const voiceGateway = new OpenAiRealtimeGateway({
   ...(process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : {}),
 });
+const researchProvider = new OpenAiResearchProvider({
+  ...(process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : {}),
+});
 const server = createCoreServer({
   config,
   environment,
@@ -39,6 +43,7 @@ const server = createCoreServer({
   sessionToken,
   version: manifest.version,
   voiceGateway,
+  researchProvider,
 });
 
 await server.start();

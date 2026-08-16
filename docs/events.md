@@ -1,6 +1,6 @@
 # Event protocol
 
-Status: Phase 5
+Status: Phase 6
 Last updated: 2026-08-17
 
 JARVIS state crosses process boundaries only through registered, runtime-validated events. The dashboard never parses assistant prose to infer system state.
@@ -9,7 +9,7 @@ JARVIS state crosses process boundaries only through registered, runtime-validat
 
 Every event contains a UUID, global sequence, ISO timestamp, registered namespaced type, source, schema version, payload, and optional session/correlation/causation/task/project identifiers. `packages/protocol/src/events.ts` is the authoritative registry. A new event type is unusable until its payload schema is registered there.
 
-Current types through Phase 5:
+Current types through Phase 6:
 
 | Type                                      | Purpose                                     | Durability           |
 | ----------------------------------------- | ------------------------------------------- | -------------------- |
@@ -29,6 +29,10 @@ Current types through Phase 5:
 | `voice.speaking`, `voice.interrupted`     | Output audio/barge-in lifecycle             | Transient            |
 | `voice.muted.changed`                     | Explicit microphone mute state              | Transient            |
 | `voice.disconnected`, `voice.failed`      | Visible voice termination/failure           | Transient            |
+| `research.started`, `research.completed`  | Durable research lifecycle/result summary   | Durable              |
+| `research.searching`                      | Active provider progress                    | Transient            |
+| `research.source_found`                   | Attributable, web-tainted source            | Durable              |
+| `research.failed`                         | Safe provider failure state                 | Durable              |
 
 Voice lifecycle events are accepted only through the authenticated `/voice/events` command boundary and are revalidated before publication. Input and assistant transcript completions become durable `conversation.message.added` events; high-frequency audio deltas never enter the event bus or SQLite.
 

@@ -1,4 +1,5 @@
 import type { VoiceRuntimeState } from "./voice.js";
+import type { ResearchRequest, ResearchResult } from "./research.js";
 
 export interface OperationContext {
   signal: AbortSignal;
@@ -45,6 +46,10 @@ export type VoiceStateListener = (
 
 export interface ResearchProvider {
   health(): Promise<ProviderHealth>;
+  research(
+    request: ResearchRequest,
+    context: OperationContext,
+  ): Promise<ResearchResult>;
 }
 
 export interface ImageSearchProvider {
