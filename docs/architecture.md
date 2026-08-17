@@ -253,6 +253,8 @@ The orchestrator resolves conversation context and selects a domain route: conve
 
 Memory is an explicit provider boundary rather than an automatic transcript sink. `SqliteMemoryService` keeps ephemeral records in process memory and stores session/project/global records in SQLite with provenance, confidence, timestamps, supersession, and soft-deletion state. Retrieval receives explicit allowed scopes plus current session/project identity and cannot widen them. Model-facing conversation code must opt into the returned records; memory events never carry content.
 
+Long-running coding starts pass through a bounded provider wrapper keyed by the configured concurrency limit. Work over the limit remains queued while the conversation transport stays available. Terminal background events feed a separate durable notification projection with exact source-event deduplication and acknowledgement state. The projection uses safe fixed summaries and never calls voice automatically.
+
 Routing uses:
 
 1. deterministic constraints and active context (for example, an explicit task ID);

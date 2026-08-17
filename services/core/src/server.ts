@@ -61,6 +61,9 @@ import {
   memorySearchRequestSchema,
   forgetMemoryRequestSchema,
   type MemoryProvider,
+  notificationListRequestSchema,
+  notificationReadRequestSchema,
+  type NotificationProvider,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -99,6 +102,7 @@ export interface CoreServerOptions {
   systemControlProvider: SystemControlProvider;
   screenshotProvider: ScreenshotProvider;
   memoryProvider: MemoryProvider;
+  notificationProvider: NotificationProvider;
 }
 
 export interface CoreServer {
@@ -1192,6 +1196,8 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/memory/remember" ||
         request.url === "/memory/search" ||
         request.url === "/memory/forget" ||
+        request.url === "/notifications/list" ||
+        request.url === "/notifications/read" ||
         /^\/deployment\/proposals\/[^/]+\/save$/.test(request.url ?? "") ||
         /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
@@ -1881,6 +1887,57 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
                 retryable: false,
               });
         }
+        if (request.url === "/notifications/list") {
+          const input = notificationListRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "notification.read",
+                resource: "notifications",
+                reason: "Read the local notification center",
+                arguments: { unreadOnly: input.unreadOnly, limit: input.limit },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          return sendJson(response, 200, {
+            notifications: options.notificationProvider.list(input),
+          });
+        }
+        if (request.url === "/notifications/read") {
+          const input = notificationReadRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "notification.update",
+                resource: `notification:${input.notificationId}`,
+                reason: "Acknowledge a local notification",
+                arguments: { notificationId: input.notificationId },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          const notification = await options.notificationProvider.markRead(
+            input.notificationId,
+          );
+          return notification
+            ? sendJson(response, 200, notification)
+            : sendJson(response, 404, {
+                code: "NOTIFICATION_NOT_FOUND",
+                message: "Notification not found",
+                retryable: false,
+              });
+        }
         if (
           /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
             request.url ?? "",
@@ -2047,7 +2104,9 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
                 ? "INVALID_BROWSER_REQUEST"
                 : request.url?.startsWith("/memory/")
                   ? "INVALID_MEMORY_REQUEST"
-                  : "INVALID_VOICE_REQUEST",
+                  : request.url?.startsWith("/notifications/")
+                    ? "INVALID_NOTIFICATION_REQUEST"
+                    : "INVALID_VOICE_REQUEST",
           message:
             request.url === "/commands/route"
               ? "Route request was malformed"
@@ -2055,7 +2114,9 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
                 ? "Browser request was malformed"
                 : request.url?.startsWith("/memory/")
                   ? "Memory request was malformed"
-                  : "Voice request was malformed",
+                  : request.url?.startsWith("/notifications/")
+                    ? "Notification request was malformed"
+                    : "Voice request was malformed",
           retryable: false,
         });
       }
@@ -2207,6 +2268,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
     stop: async () => {
       unsubscribe();
       unsubscribeCoding();
+      options.notificationProvider.close();
       await options.browserProvider.close();
       await options.codingAgentProvider.close();
       for (const [client, state] of clients) {

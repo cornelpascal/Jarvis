@@ -192,6 +192,9 @@ importers:
       '@jarvis/memory':
         specifier: workspace:*
         version: link:../memory
+      '@jarvis/notifications':
+        specifier: workspace:*
+        version: link:../notifications
       '@jarvis/os-abstractions':
         specifier: workspace:*
         version: link:../../packages/os-abstractions
@@ -240,6 +243,18 @@ importers:
         version: link:../../packages/protocol
 
   services/memory:
+    dependencies:
+      '@jarvis/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@jarvis/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@jarvis/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+
+  services/notifications:
     dependencies:
       '@jarvis/database':
         specifier: workspace:*

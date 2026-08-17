@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 20 — DONE**
-Next phase: **Phase 21 — NOT_STARTED**
+Current phase: **Phase 21 — DONE**
+Next phase: **Phase 22 — NOT_STARTED**
 
 ## Status definitions
 
@@ -54,7 +54,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 18 — Windows system tools            | DONE        | Allow-listed least-privilege control and telemetry adapters                       |
 | 19 — Screenshot context              | DONE        | Explicit active-window/display capture as conversation context                    |
 | 20 — Memory                          | DONE        | Scoped explicit memories and relevant retrieval                                   |
-| 21 — Notifications/background work   | NOT_STARTED | Concurrent jobs, non-blocking conversation, rate-aware notifications              |
+| 21 — Notifications/background work   | DONE        | Concurrent jobs, non-blocking conversation, rate-aware notifications              |
 | 22 — Wake word                       | NOT_STARTED | Local wake-word activation after voice stability                                  |
 | 23 — Windows packaging               | NOT_STARTED | Installer, startup, crash recovery, migration, release documentation              |
 
@@ -289,11 +289,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 21 — Notifications / background work
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Durable notification center, job concurrency limits, grouped/rate-aware visual and optional spoken notices, acknowledgement, conversation continuity, recovery after restart.
 - **Dependencies:** Event bus, HUD, voice, task/job subsystems.
 - **Acceptance:** Multiple long tasks run within limits while conversation continues; completion/failure notifications appear once and can be acknowledged; speech does not interrupt constantly; restart restores pending state.
 - **Tests:** Concurrent mock jobs, cancellation, dedup/group/rate limit, quiet voice policy, restart/replay, failure visibility, load/backpressure.
+- **Evidence:** 82 unit/integration tests pass. Coding starts are bounded by `codex.max_concurrent_agents`, excess tasks remain queued, and terminal/pause/cancel transitions drain the queue. A durable notification service translates selected terminal events to safe generic notices exactly once by source event ID, restores unread state from SQLite, supports acknowledgement, and feeds a HUD Notification Center. Notification creation never invokes voice, so background work does not interrupt conversation by default.
+- **Known limitations:** The queue is process-local and reconstructs task records but does not automatically resume an in-flight provider turn after a Core crash; such tasks remain inspectable and require explicit resume. Notification grouping is exact-event deduplication rather than time-window aggregation. Spoken notices remain disabled until a user-configurable quiet-hours/rate policy exists.
 - **Known risks:** Notification fatigue, race/duplicates, resource exhaustion, spoken privacy leaks.
 
 ### Phase 22 — Wake word

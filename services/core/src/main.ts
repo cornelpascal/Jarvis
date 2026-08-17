@@ -12,6 +12,7 @@ import { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
 import { SqlitePermissionBroker } from "@jarvis/permissions";
 import { SqliteMemoryService } from "@jarvis/memory";
+import { SqliteNotificationService } from "@jarvis/notifications";
 import { SqliteDeploymentManager } from "@jarvis/deployment";
 import {
   WindowsScreenshotProvider,
@@ -23,6 +24,7 @@ import { PlaywrightBrowserProvider } from "@jarvis/browser";
 import { SqliteProjectRegistry, SqliteProjectSearch } from "@jarvis/projects";
 import {
   CodexAppServerProvider,
+  BoundedCodingAgentProvider,
   GitWorktreeManager,
   GitTaskManager,
   TaskVerificationService,
@@ -60,10 +62,14 @@ const projectRegistry = new SqliteProjectRegistry({
   bus,
 });
 const projectSearch = new SqliteProjectSearch(database, bus);
-const codingAgentProvider = new CodexAppServerProvider({
+const rawCodingAgentProvider = new CodexAppServerProvider({
   database,
   clientVersion: manifest.version,
 });
+const codingAgentProvider = new BoundedCodingAgentProvider(
+  rawCodingAgentProvider,
+  config.codex.max_concurrent_agents,
+);
 const worktreeManager = new GitWorktreeManager({
   database,
   worktreesRoot: paths.worktrees,
@@ -77,6 +83,7 @@ const screenshotProvider = new WindowsScreenshotProvider({
   root: resolve(paths.root, "screenshots"),
 });
 const memoryProvider = new SqliteMemoryService({ database, bus });
+const notificationProvider = new SqliteNotificationService({ database, bus });
 const server = createCoreServer({
   config,
   environment,
@@ -98,6 +105,7 @@ const server = createCoreServer({
   systemControlProvider,
   screenshotProvider,
   memoryProvider,
+  notificationProvider,
 });
 
 await server.start();

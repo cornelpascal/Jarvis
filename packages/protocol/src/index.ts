@@ -12,5 +12,6 @@ export * from "./deployment.js";
 export * from "./system.js";
 export * from "./screenshot.js";
 export * from "./memory.js";
+export * from "./notifications.js";
 export * from "./transport.js";
 export * from "./voice.js";

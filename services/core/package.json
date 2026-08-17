@@ -18,6 +18,7 @@
     "@jarvis/event-bus": "workspace:*",
     "@jarvis/logging": "workspace:*",
     "@jarvis/memory": "workspace:*",
+    "@jarvis/notifications": "workspace:*",
     "@jarvis/os-abstractions": "workspace:*",
     "@jarvis/permissions": "workspace:*",
     "@jarvis/protocol": "workspace:*",

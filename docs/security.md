@@ -329,6 +329,8 @@ The developer log viewer is separate from the conversation. The UI shows user-me
 - Persistent memory creation accepts only trusted user provenance; web/project/agent/system content cannot be promoted silently.
 - Likely keys, tokens, passwords, and private keys are rejected, and memory event payloads contain no content.
 - Scope queries require exact session/project identifiers and never fall back to broader records when context is missing.
+- Notification bodies are fixed safe summaries; raw web, agent, command, and deployment error content is never copied into notifications.
+- Background notices are visual-only by default, avoiding unsolicited spoken disclosure.
 
 ## Supply-chain and licensing controls
 

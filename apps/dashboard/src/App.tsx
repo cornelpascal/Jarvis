@@ -21,6 +21,7 @@ import {
 } from "./hotkey-provider";
 import { OpenAiWebRtcVoiceProvider } from "./voice-provider";
 import { MemoryCenter } from "./MemoryCenter";
+import { NotificationCenter } from "./NotificationCenter";
 import "./styles.css";
 
 function percent(value: number | undefined): string {
@@ -44,6 +45,7 @@ export function App() {
   const [showInspector, setShowInspector] = useState(false);
   const [showDisplays, setShowDisplays] = useState(false);
   const [showMemories, setShowMemories] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [displayCount, setDisplayCount] = useState(0);
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -573,6 +575,9 @@ export function App() {
           <button onClick={() => setShowMemories(true)} type="button">
             MEMORY
           </button>
+          <button onClick={() => setShowNotifications(true)} type="button">
+            NOTICES
+          </button>
           <button
             onClick={() => setShowInspector((shown) => !shown)}
             type="button"
@@ -593,6 +598,10 @@ export function App() {
             : {})}
           onClose={() => setShowMemories(false)}
         />
+      ) : null}
+
+      {showNotifications ? (
+        <NotificationCenter onClose={() => setShowNotifications(false)} />
       ) : null}
 
       {showInspector ? (

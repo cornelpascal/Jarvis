@@ -32,6 +32,7 @@ import type {
   SystemControlProvider,
   ScreenshotProvider,
   MemoryProvider,
+  NotificationProvider,
   WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
@@ -288,6 +289,11 @@ const memoryProvider: MemoryProvider = {
     Promise.resolve({ requestId: request.requestId, memories: [] }),
   forget: () => Promise.resolve(false),
 };
+const notificationProvider: NotificationProvider = {
+  list: () => [],
+  markRead: () => Promise.resolve(undefined),
+  close: () => undefined,
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -380,6 +386,7 @@ describe("core event stream", () => {
       systemControlProvider,
       screenshotProvider,
       memoryProvider,
+      notificationProvider,
     });
     await server.start();
     await bus.publish(
@@ -444,6 +451,7 @@ describe("core event stream", () => {
       systemControlProvider,
       screenshotProvider,
       memoryProvider,
+      notificationProvider,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -496,6 +504,7 @@ describe("core event stream", () => {
       systemControlProvider,
       screenshotProvider,
       memoryProvider,
+      notificationProvider,
     });
     await server.start();
     const unauthorized = await fetch(

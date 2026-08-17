@@ -180,4 +180,16 @@ export const migrations: readonly Migration[] = [
       "CREATE INDEX IF NOT EXISTS idx_memories_scope_active ON memories(scope, scope_id, deleted_at, superseded_by)",
     ],
   },
+  {
+    version: 8,
+    name: "durable_notifications",
+    statements: [
+      "ALTER TABLE notifications ADD COLUMN event_id TEXT",
+      "ALTER TABLE notifications ADD COLUMN severity TEXT NOT NULL DEFAULT 'info'",
+      "ALTER TABLE notifications ADD COLUMN project_id TEXT",
+      "ALTER TABLE notifications ADD COLUMN task_id TEXT",
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_event ON notifications(event_id)",
+      "CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(read_at, created_at)",
+    ],
+  },
 ];

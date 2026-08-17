@@ -686,6 +686,131 @@ export class MockCodingAgentProvider implements CodingAgentProvider {
   }
 }
 
+export class BoundedCodingAgentProvider implements CodingAgentProvider {
+  readonly #provider: CodingAgentProvider;
+  readonly #maxConcurrent: number;
+  readonly #active = new Set<string>();
+  readonly #queued = new Map<string, "start" | "resume">();
+  readonly #listeners = new Set<CodingAgentEventListener>();
+  readonly #unsubscribe: () => void;
+  #draining = false;
+
+  constructor(provider: CodingAgentProvider, maxConcurrent: number) {
+    if (!Number.isInteger(maxConcurrent) || maxConcurrent < 1)
+      throw new RangeError("maxConcurrent must be a positive integer");
+    this.#provider = provider;
+    this.#maxConcurrent = maxConcurrent;
+    this.#unsubscribe = provider.subscribeEvents(async (event) => {
+      if (
+        event.type === "state" &&
+        event.state &&
+        [
+          "READY_FOR_REVIEW",
+          "COMPLETED",
+          "FAILED",
+          "CANCELLED",
+          "BLOCKED",
+        ].includes(event.state)
+      ) {
+        this.#active.delete(event.taskId);
+        void this.#drain();
+      }
+      await Promise.all(
+        [...this.#listeners].map((listener) =>
+          Promise.resolve(listener(event)),
+        ),
+      );
+    });
+  }
+
+  health(): Promise<ProviderHealth> {
+    return this.#provider.health();
+  }
+  createTask(input: CodingTaskCreate): Promise<CodingTask> {
+    return this.#provider.createTask(input);
+  }
+  async startTask(taskId: string): Promise<CodingTask> {
+    return this.#schedule(taskId, "start");
+  }
+  async resumeTask(taskId: string): Promise<CodingTask> {
+    return this.#schedule(taskId, "resume");
+  }
+  async pauseTask(taskId: string): Promise<CodingTask> {
+    this.#queued.delete(taskId);
+    this.#active.delete(taskId);
+    const result = await this.#provider.pauseTask(taskId);
+    void this.#drain();
+    return result;
+  }
+  async cancelTask(taskId: string): Promise<CodingTask> {
+    this.#queued.delete(taskId);
+    this.#active.delete(taskId);
+    const result = await this.#provider.cancelTask(taskId);
+    void this.#drain();
+    return result;
+  }
+  sendInstruction(taskId: string, instruction: string): Promise<CodingTask> {
+    return this.#provider.sendInstruction(taskId, instruction);
+  }
+  getStatus(taskId: string): Promise<CodingTask> {
+    return this.#provider.getStatus(taskId);
+  }
+  subscribeEvents(listener: CodingAgentEventListener): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+  requestDiff(taskId: string): Promise<string> {
+    return this.#provider.requestDiff(taskId);
+  }
+  async close(): Promise<void> {
+    this.#unsubscribe();
+    this.#queued.clear();
+    this.#active.clear();
+    await this.#provider.close();
+  }
+
+  async #schedule(
+    taskId: string,
+    action: "start" | "resume",
+  ): Promise<CodingTask> {
+    if (this.#active.has(taskId)) return this.#provider.getStatus(taskId);
+    if (this.#active.size >= this.#maxConcurrent) {
+      this.#queued.set(taskId, action);
+      return this.#provider.getStatus(taskId);
+    }
+    this.#active.add(taskId);
+    try {
+      return action === "start"
+        ? await this.#provider.startTask(taskId)
+        : await this.#provider.resumeTask(taskId);
+    } catch (cause) {
+      this.#active.delete(taskId);
+      void this.#drain();
+      throw cause;
+    }
+  }
+
+  async #drain(): Promise<void> {
+    if (this.#draining) return;
+    this.#draining = true;
+    try {
+      while (this.#active.size < this.#maxConcurrent && this.#queued.size > 0) {
+        const next = this.#queued.entries().next().value;
+        if (!next) break;
+        const [taskId, action] = next;
+        this.#queued.delete(taskId);
+        try {
+          await this.#schedule(taskId, action);
+        } catch {
+          // The provider emits its own typed task failure; continue the queue.
+        }
+      }
+    } finally {
+      this.#draining = false;
+    }
+  }
+}
+
 export { GitWorktreeManager, WorktreeError } from "./worktrees.js";
 export { TaskVerificationService } from "./verification.js";
 export { GitTaskManager, GitTaskError } from "./git.js";

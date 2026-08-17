@@ -428,6 +428,20 @@ export const eventPayloadSchemas = {
     memoryId: z.uuid(),
     scope: z.enum(["EPHEMERAL", "SESSION", "PROJECT", "GLOBAL"]),
   }),
+  "notification.created": z.strictObject({
+    notificationId: z.uuid(),
+    type: z.enum(["task", "deployment", "research", "system"]),
+    severity: z.enum(["info", "success", "warning", "error"]),
+    title: z.string().min(1).max(200),
+    body: z.string().max(1_000).optional(),
+    projectId: z.string().min(1).optional(),
+    taskId: z.string().min(1).optional(),
+    createdAt: z.iso.datetime(),
+  }),
+  "notification.read": z.strictObject({
+    notificationId: z.uuid(),
+    readAt: z.iso.datetime(),
+  }),
   "approval.requested": z.strictObject({
     approvalId: z.string().min(1),
     action: z.string().min(1),

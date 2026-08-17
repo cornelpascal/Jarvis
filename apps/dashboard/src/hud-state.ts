@@ -550,6 +550,16 @@ export function reduceHudEvent(
           `${event.payload.scope} memory deleted`,
         ),
       };
+    case "notification.created":
+      return {
+        ...state,
+        activity: appendActivity(state, event.payload.title),
+      };
+    case "notification.read":
+      return {
+        ...state,
+        activity: appendActivity(state, "Notification acknowledged"),
+      };
     case "approval.requested":
       return {
         ...state,

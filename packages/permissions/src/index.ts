@@ -31,6 +31,8 @@ export const permissionActionSchema = z.enum([
   "system.admin",
   "memory.read",
   "memory.write",
+  "notification.read",
+  "notification.update",
 ]);
 export type PermissionAction = z.infer<typeof permissionActionSchema>;
 
@@ -96,6 +98,8 @@ const ACTION_RISK: Record<PermissionAction, RiskLevel> = {
   "system.admin": 3,
   "memory.read": 0,
   "memory.write": 1,
+  "notification.read": 0,
+  "notification.update": 1,
 };
 
 function canonicalJson(value: unknown): string {

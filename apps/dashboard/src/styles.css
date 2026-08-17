@@ -718,6 +718,20 @@ dd {
   padding: 18px;
 }
 
+.notification-center {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: auto;
+  border: 1px solid rgba(75, 220, 255, 0.45);
+  background: rgba(4, 11, 17, 0.98);
+  box-shadow: 0 0 50px rgba(0, 190, 255, 0.16);
+  padding: 18px;
+}
+
+.notification-center article.read {
+  opacity: 0.58;
+}
+
 .memory-policy {
   color: var(--muted);
   font-size: 0.78rem;
