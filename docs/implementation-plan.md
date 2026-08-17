@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 16 — DONE**
-Next phase: **Phase 17 — NOT_STARTED**
+Current phase: **Phase 17 — DONE**
+Next phase: **Phase 18 — NOT_STARTED**
 
 ## Status definitions
 
@@ -50,7 +50,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 14 — Permission broker               | DONE        | Complete mediation, risk policy, approvals, denial/injection tests                |
 | 15 — Git commit/push                 | DONE        | Explicit, resolved, audited commit/push flow; no auto-push                        |
 | 16 — Deployment system               | DONE        | Typed adapters, validated configured deploy, health events                        |
-| 17 — Deployment config auto-creation | NOT_STARTED | Missing-config analysis/proposal/approval/save workflow                           |
+| 17 — Deployment config auto-creation | DONE        | Missing-config analysis/proposal/approval/save workflow                           |
 | 18 — Windows system tools            | NOT_STARTED | Allow-listed least-privilege control and telemetry adapters                       |
 | 19 — Screenshot context              | NOT_STARTED | Explicit active-window/display capture as conversation context                    |
 | 20 — Memory                          | NOT_STARTED | Scoped explicit memories and relevant retrieval                                   |
@@ -245,11 +245,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 17 — Deployment config auto-creation
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Read-only analyzer for Docker/Compose/IIS/scripts/package/CI/docs/env examples, evidence-ranked proposal, unresolved fields, validation, review, separate save/execute approvals.
 - **Dependencies:** Phase 16 schema/adapters; Phase 10 retrieval.
 - **Acceptance:** “Deploy it” without config performs zero deployment; produces a reasoned typed proposal, asks for unresolved data, validates, and saves only after approval; first deployment remains separately authorized.
 - **Tests:** Docker/Compose/Node/Python/IIS/CI fixture repos, conflicting evidence, missing credentials/target, malicious README instructions, zero-execution assertion, proposal → approval → save E2E.
+- **Evidence:** 71 unit/integration tests pass. The analyzer reads only a bounded allow-list of root deployment artifacts and workflow filenames, rejects symlinks/oversized files, ranks Compose above Docker/CI/PowerShell/IIS/Node evidence, extracts only variable names from `.env.example`, and never interprets README instructions. Compose fixtures prove proposal persistence, zero deployment runs, config save by proposal digest, and reusable typed output. Unsupported Node/IIS evidence remains unresolved and cannot be saved.
+- **Known limitations:** The analyzer currently recognizes root Compose/Dockerfile/deploy.ps1/web.config/package manifests and GitHub workflow filenames; deeper organizational deployment conventions require manual configuration. A health check defaults to `none` in structurally complete proposals and should be reviewed before first real adapter execution.
 - **Known risks:** False inference, hidden organizational process, malicious project docs, incomplete rollback/health information.
 
 ### Phase 18 — Windows system tools

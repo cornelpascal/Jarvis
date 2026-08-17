@@ -455,6 +455,28 @@ export function reduceHudEvent(
           `Deployment failed: ${event.payload.code}`,
         ),
       };
+    case "deployment.config_missing":
+      return {
+        ...state,
+        mode: "THINKING",
+        modeReason: "Analyzing deployment configuration",
+        activity: appendActivity(state, "Deployment config missing"),
+      };
+    case "deployment.config_proposed":
+      return {
+        ...state,
+        mode:
+          event.payload.unresolved.length > 0 ? "WAITING_APPROVAL" : state.mode,
+        modeReason: `${event.payload.recommendedType} proposal ready`,
+        activity: appendActivity(state, "Deployment proposal ready"),
+      };
+    case "deployment.config_saved":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: "Deployment configuration saved",
+        activity: appendActivity(state, "Deployment configuration saved"),
+      };
     case "approval.requested":
       return {
         ...state,

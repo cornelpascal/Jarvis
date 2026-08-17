@@ -157,4 +157,16 @@ export const migrations: readonly Migration[] = [
       "CREATE INDEX IF NOT EXISTS idx_permission_receipts_digest ON permission_receipts(action_digest)",
     ],
   },
+  {
+    version: 6,
+    name: "deployment_proposals",
+    statements: [
+      `CREATE TABLE IF NOT EXISTS deployment_proposals (
+        id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        environment TEXT NOT NULL, state TEXT NOT NULL, proposal_json TEXT NOT NULL,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      )`,
+      "CREATE INDEX IF NOT EXISTS idx_deployment_proposals_project ON deployment_proposals(project_id, environment)",
+    ],
+  },
 ];

@@ -156,6 +156,31 @@ export function App() {
           if (!deployment.ok)
             throw new Error(`Deployment failed (${String(deployment.status)})`);
         }
+        if (
+          approved &&
+          resolution.receiptId &&
+          approval.action === "project.configure" &&
+          approval.resource.startsWith("deployment-proposal:")
+        ) {
+          const proposalId = approval.resource.slice(
+            "deployment-proposal:".length,
+          );
+          const saved = await coreRequest(
+            `/deployment/proposals/${encodeURIComponent(proposalId)}/save`,
+            {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                "x-jarvis-permission-receipt": resolution.receiptId,
+              },
+              body: "{}",
+            },
+          );
+          if (!saved.ok)
+            throw new Error(
+              `Deployment proposal save failed (${String(saved.status)})`,
+            );
+        }
         setError(undefined);
       } catch (cause) {
         setError(

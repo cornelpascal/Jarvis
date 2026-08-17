@@ -18,4 +18,10 @@ The dry-run adapter validates dispatch and reports health as `SKIPPED`. HTTP hea
 - `POST /deployment/execute` previews and requests approval, or consumes an exact receipt and executes.
 - A natural-language deployment route prepares the configured `production` environment. Missing-config proposal behavior is Phase 17.
 
-Unknown adapters, changed configs, missing configs, receipt mismatch, and adapter failures fail closed. No deployment path accepts an arbitrary command string.
+## Missing configuration
+
+When no production config exists, the same natural-language route performs a read-only proposal pass. It considers a fixed bounded allow-list: root Compose/Dockerfile/deploy.ps1/web.config/package manifests, GitHub workflow filenames, and variable names (not values) from `.env.example`. README prose is never executable evidence. Symlinks and oversized files are ignored.
+
+The proposal records ranked evidence, confidence, unresolved fields, an optional typed config, and a digest. It is persisted and shown in Reference Deck `DOCUMENT` mode. Complete proposals require separate Level 2 approval to save; unresolved proposals cannot be saved. Proposal/save performs zero deployment runs. A later deploy request previews the saved config and independently requires Level 3 execution approval.
+
+Unknown adapters, changed configs/proposals, unresolved proposals, receipt mismatch, and adapter failures fail closed. No deployment path accepts an arbitrary command string.

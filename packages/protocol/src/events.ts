@@ -351,6 +351,24 @@ export const eventPayloadSchemas = {
     code: z.string().min(1),
     message: z.string().min(1),
   }),
+  "deployment.config_missing": z.strictObject({
+    projectId: z.string().min(1),
+    environment: z.string().min(1),
+  }),
+  "deployment.config_proposed": z.strictObject({
+    proposalId: z.uuid(),
+    projectId: z.string().min(1),
+    environment: z.string().min(1),
+    recommendedType: z.string().min(1),
+    confidence: z.number().min(0).max(1),
+    unresolved: z.array(z.string().min(1)),
+  }),
+  "deployment.config_saved": z.strictObject({
+    proposalId: z.uuid(),
+    projectId: z.string().min(1),
+    environment: z.string().min(1),
+    adapterType: z.string().min(1),
+  }),
   "approval.requested": z.strictObject({
     approvalId: z.string().min(1),
     action: z.string().min(1),

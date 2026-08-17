@@ -215,6 +215,23 @@ const deploymentManager: DeploymentManagerProvider = {
       completedAt: now,
     });
   },
+  propose: (projectId, environment) =>
+    Promise.resolve({
+      id: "77122733-a255-44bc-a249-e1356b3839c9",
+      projectId,
+      environment,
+      recommendedType: "unknown",
+      confidence: 0.2,
+      reason: "No evidence",
+      evidence: [],
+      unresolved: ["deployment method"],
+      digest: "d".repeat(64),
+      createdAt: new Date().toISOString(),
+    }),
+  getProposal: () => undefined,
+  saveProposal: () => {
+    throw new Error("No proposal in mock");
+  },
 };
 
 function testConfig(port: number): JarvisConfig {

@@ -36,6 +36,13 @@ export const deploymentConfigSchema = z.discriminatedUnion("type", [
   }),
   z.strictObject({
     ...deploymentBase,
+    type: z.literal("docker"),
+    workingDirectory: z.string().min(1),
+    dockerfile: z.string().min(1),
+    image: z.string().regex(/^[a-z0-9][a-z0-9._/-]*$/),
+  }),
+  z.strictObject({
+    ...deploymentBase,
     type: z.literal("powershell"),
     workingDirectory: z.string().min(1),
     scriptPath: z.string().min(1),
@@ -77,6 +84,34 @@ export const deploymentExecuteRequestSchema = z.strictObject({
   environment: z.string().min(1).max(100).default("production"),
 });
 
+export const deploymentProposalSchema = z.strictObject({
+  id: z.uuid(),
+  projectId: z.string().min(1),
+  environment: z.string().min(1),
+  recommendedType: z.enum([
+    "docker_compose",
+    "docker",
+    "powershell",
+    "ci_cd",
+    "iis",
+    "node_service",
+    "unknown",
+  ]),
+  confidence: z.number().min(0).max(1),
+  reason: z.string().min(1),
+  evidence: z.array(
+    z.strictObject({
+      path: z.string().min(1),
+      signal: z.string().min(1),
+    }),
+  ),
+  unresolved: z.array(z.string().min(1)),
+  proposedConfig: deploymentConfigSchema.optional(),
+  digest: z.string().regex(/^[0-9a-f]{64}$/),
+  createdAt: z.iso.datetime(),
+});
+export type DeploymentProposal = z.infer<typeof deploymentProposalSchema>;
+
 export interface DeploymentManagerProvider {
   save(config: DeploymentConfig): DeploymentConfig;
   get(projectId: string, environment: string): DeploymentConfig | undefined;
@@ -86,4 +121,7 @@ export interface DeploymentManagerProvider {
     environment: string,
     expectedConfigDigest: string,
   ): Promise<DeploymentResult>;
+  propose(projectId: string, environment: string): Promise<DeploymentProposal>;
+  getProposal(proposalId: string): DeploymentProposal | undefined;
+  saveProposal(proposalId: string, expectedDigest: string): DeploymentConfig;
 }

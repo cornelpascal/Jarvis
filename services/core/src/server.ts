@@ -52,6 +52,7 @@ import {
   deploymentConfigSchema,
   deploymentExecuteRequestSchema,
   type DeploymentPreview,
+  type DeploymentProposal,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -761,6 +762,21 @@ function deploymentPermission(preview: DeploymentPreview): PermissionRequest {
   });
 }
 
+function deploymentProposalPermission(
+  proposal: DeploymentProposal,
+): PermissionRequest {
+  return permissionRequest({
+    action: "project.configure",
+    resource: `deployment-proposal:${proposal.id}`,
+    projectId: proposal.projectId,
+    reason: `Save the proposed ${proposal.recommendedType} deployment configuration`,
+    arguments: {
+      proposalId: proposal.id,
+      proposalDigest: proposal.digest,
+    },
+  });
+}
+
 async function prepareDeploymentRoute(
   bus: LocalEventBus,
   manager: DeploymentManagerProvider,
@@ -779,6 +795,65 @@ async function prepareDeploymentRoute(
     return;
   }
   try {
+    if (!manager.get(request.activeProjectId, "production")) {
+      const proposalPermission = await permissions.authorize(
+        permissionRequest({
+          action: "deployment.propose",
+          resource: `project:${request.activeProjectId}`,
+          projectId: request.activeProjectId,
+          reason: "Inspect deployment artifacts without executing them",
+        }),
+      );
+      if (proposalPermission.state !== "APPROVED") return;
+      await bus.publish(
+        bus.create("deployment.config_missing", "core.deployment", {
+          projectId: request.activeProjectId,
+          environment: "production",
+        }),
+      );
+      const proposal = await manager.propose(
+        request.activeProjectId,
+        "production",
+      );
+      await bus.publish(
+        bus.create("deployment.config_proposed", "core.deployment", {
+          proposalId: proposal.id,
+          projectId: proposal.projectId,
+          environment: proposal.environment,
+          recommendedType: proposal.recommendedType,
+          confidence: proposal.confidence,
+          unresolved: proposal.unresolved,
+        }),
+      );
+      await bus.publish(
+        bus.create("reference.display.requested", "core.deployment", {
+          mode: "DOCUMENT",
+          title: "DEPLOYMENT CONFIGURATION PROPOSAL",
+          items: [
+            {
+              id: proposal.id,
+              type: "document",
+              title: `${proposal.recommendedType} proposal`,
+              content: JSON.stringify(proposal, null, 2),
+            },
+          ],
+        }),
+      );
+      if (proposal.proposedConfig && proposal.unresolved.length === 0)
+        await permissions.authorize(deploymentProposalPermission(proposal));
+      await bus.publish(
+        bus.create("conversation.message.added", "core.deployment", {
+          messageId: randomUUID(),
+          role: "assistant",
+          content:
+            proposal.unresolved.length > 0
+              ? `I created a deployment proposal but need: ${proposal.unresolved.join(", ")}. Nothing was deployed.`
+              : `I created a ${proposal.recommendedType} deployment proposal. Approve saving it for future use; nothing has been deployed.`,
+          citations: [],
+        }),
+      );
+      return;
+    }
     const preview = manager.preview(request.activeProjectId, "production");
     const decision = await permissions.authorize(deploymentPermission(preview));
     await bus.publish(
@@ -1100,6 +1175,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         /^\/git\/tasks\/[^/]+\/push$/.test(request.url ?? "") ||
         request.url === "/deployment/configs" ||
         request.url === "/deployment/execute" ||
+        /^\/deployment\/proposals\/[^/]+\/save$/.test(request.url ?? "") ||
         /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
           request.url ?? "",
@@ -1495,6 +1571,43 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             201,
             options.deploymentManager.save(config),
           );
+        }
+        if (/^\/deployment\/proposals\/[^/]+\/save$/.test(request.url ?? "")) {
+          await readBody(request);
+          const proposalId = request.url?.split("/").at(3);
+          if (!proposalId)
+            throw new Error("Deployment proposal identifier is missing");
+          const proposal = options.deploymentManager.getProposal(
+            decodeURIComponent(proposalId),
+          );
+          if (!proposal)
+            return sendJson(response, 404, {
+              code: "PROPOSAL_NOT_FOUND",
+              message: "Deployment proposal not found",
+              retryable: false,
+            });
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              deploymentProposalPermission(proposal),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          const config = options.deploymentManager.saveProposal(
+            proposal.id,
+            proposal.digest,
+          );
+          await options.bus.publish(
+            options.bus.create("deployment.config_saved", "core.deployment", {
+              proposalId: proposal.id,
+              projectId: proposal.projectId,
+              environment: proposal.environment,
+              adapterType: config.type,
+            }),
+          );
+          return sendJson(response, 201, config);
         }
         if (request.url === "/deployment/execute") {
           const input = deploymentExecuteRequestSchema.parse(

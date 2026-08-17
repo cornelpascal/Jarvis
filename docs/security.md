@@ -60,6 +60,8 @@ Phase 15 binds Git push approval to the exact task, owned branch, HEAD revision,
 
 Phase 16 deployment approval binds project, environment, adapter type, and the complete validated config digest. Configuration stores secret reference names only. Adapter dispatch is a closed registry with no generic shell fallback; valid but unavailable adapters fail closed. The initial dry-run adapter performs no host or network mutation and records an explicit `SKIPPED` health result.
 
+Phase 17 proposal analysis reads only fixed deployment artifacts with canonical containment, file-type, symlink, size, and count limits. It ignores README prose as an instruction source and extracts only environment-variable names. Proposal creation cannot call an adapter and tests assert zero deployment runs. Saving is separately approved and digest-bound; unresolved proposals fail closed. First execution remains an independent Level 3 approval.
+
 Phase 12 makes isolated Git worktrees mandatory for Core-created coding tasks. Source dirty state is observed but never reset or copied. Canonical containment and persisted ownership protect cleanup; dirty task worktrees are preserved. Repositories tracking `.env`, PEM, or private-key files are refused before checkout, and no non-Git fallback edits the registered source directory.
 
 ## Assets
