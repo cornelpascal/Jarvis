@@ -298,6 +298,8 @@ interface TelemetryProvider {}
 
 Every actionable provider method accepts an operation context containing cancellation, timeout/deadline, session/correlation/task/project IDs, provenance, and permission receipt where required. Provider-specific types remain behind adapters.
 
+`ScreenshotProvider.capture` is an explicit request/response boundary. The Windows adapter returns a bounded ephemeral PNG for either the foreground window or primary display. Core publishes only metadata into the durable event stream, while the authenticated initiating response owns the pixel payload. This keeps screen bytes out of logs, SQLite, WebSocket replay, and unrelated dashboard clients and leaves selected-region/non-primary-display capture as portable provider additions.
+
 ### CodingAgentProvider
 
 The domain interface supports `createTask`, `startTask`, `resumeTask`, `pauseTask`, `cancelTask`, `sendInstruction`, `getStatus`, `subscribeEvents`, and `requestDiff`.

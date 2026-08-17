@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 18 — DONE**
-Next phase: **Phase 19 — NOT_STARTED**
+Current phase: **Phase 19 — DONE**
+Next phase: **Phase 20 — NOT_STARTED**
 
 ## Status definitions
 
@@ -52,7 +52,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 16 — Deployment system               | DONE        | Typed adapters, validated configured deploy, health events                        |
 | 17 — Deployment config auto-creation | DONE        | Missing-config analysis/proposal/approval/save workflow                           |
 | 18 — Windows system tools            | DONE        | Allow-listed least-privilege control and telemetry adapters                       |
-| 19 — Screenshot context              | NOT_STARTED | Explicit active-window/display capture as conversation context                    |
+| 19 — Screenshot context              | DONE        | Explicit active-window/display capture as conversation context                    |
 | 20 — Memory                          | NOT_STARTED | Scoped explicit memories and relevant retrieval                                   |
 | 21 — Notifications/background work   | NOT_STARTED | Concurrent jobs, non-blocking conversation, rate-aware notifications              |
 | 22 — Wake word                       | NOT_STARTED | Local wake-word activation after voice stability                                  |
@@ -267,11 +267,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 19 — Screenshot context
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Explicit capture of active window/display, active-app metadata, typed image attachment, temporary/persistent retention policy, redaction hooks, future selected-region interface.
 - **Dependencies:** Phases 4, 14, 18; multimodal conversation provider capability.
 - **Acceptance:** Explicit “look at this” capture reaches the conversation with metadata; capture state is visible; failure is clear; no continuous capture; multiple monitors handled.
 - **Tests:** Provider mock, active-window/display selection, scaling/multi-monitor coordinates, denial/permission errors, image limits, retention/deletion, secret-log regression, manual smoke.
+- **Evidence:** 77 unit/integration tests pass. `WindowsScreenshotProvider` captures the active foreground-window bounds or primary display through a fixed non-interactive PowerShell/native API bridge, enforces a 10 MiB PNG limit, returns a typed ephemeral attachment, and deletes the temporary file in `finally`. The authenticated Core route requires the centralized `system.capture` permission, publishes visible capture lifecycle and conversation-context metadata events, and never puts pixel data in events, logs, or SQLite.
+- **Known limitations:** V1 supports the active window and primary display; selected regions and choosing a non-primary display remain provider extensions. Protected/HDR content can capture as a black or color-shifted frame. Passing the returned image to a model requires a multimodal conversation provider implementation; Core currently registers the attachment as conversation context and returns its bytes only to the authenticated initiating client.
 - **Known risks:** Sensitive pixels, protected-content black frames, DPI/HDR, large images, provider egress privacy.
 
 ### Phase 20 — Memory

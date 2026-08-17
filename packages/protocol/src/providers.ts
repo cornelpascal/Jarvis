@@ -8,6 +8,7 @@ import type {
   CodingTaskCreate,
 } from "./codex.js";
 import type { SystemAction, SystemActionResult } from "./system.js";
+import type { ScreenshotRequest, ScreenshotResult } from "./screenshot.js";
 
 export interface OperationContext {
   signal: AbortSignal;
@@ -115,6 +116,7 @@ export interface SystemControlProvider {
 
 export interface ScreenshotProvider {
   health(): Promise<ProviderHealth>;
+  capture(request: ScreenshotRequest): Promise<ScreenshotResult>;
 }
 
 export interface HotkeyProvider {

@@ -30,6 +30,7 @@ import type {
   GitTaskProvider,
   DeploymentManagerProvider,
   SystemControlProvider,
+  ScreenshotProvider,
   WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
@@ -248,6 +249,24 @@ const systemControlProvider: SystemControlProvider = {
       message: "Mock system action complete",
     }),
 };
+const screenshotProvider: ScreenshotProvider = {
+  health: () =>
+    Promise.resolve({ status: "available", capabilities: ["active_window"] }),
+  capture: (request) =>
+    Promise.resolve({
+      contextId: "ea57feaf-c847-4653-b8f3-b3bf234cb265",
+      requestId: request.requestId,
+      mode: request.mode,
+      mimeType: "image/png",
+      imageBase64: "iVBORw0KGgo=",
+      byteLength: 8,
+      width: 100,
+      height: 100,
+      activeApplication: "Fixture",
+      capturedAt: new Date().toISOString(),
+      retention: "ephemeral",
+    }),
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -338,6 +357,7 @@ describe("core event stream", () => {
       gitTaskManager,
       deploymentManager,
       systemControlProvider,
+      screenshotProvider,
     });
     await server.start();
     await bus.publish(
@@ -400,6 +420,7 @@ describe("core event stream", () => {
       gitTaskManager,
       deploymentManager,
       systemControlProvider,
+      screenshotProvider,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -450,6 +471,7 @@ describe("core event stream", () => {
       gitTaskManager,
       deploymentManager,
       systemControlProvider,
+      screenshotProvider,
     });
     await server.start();
     const unauthorized = await fetch(

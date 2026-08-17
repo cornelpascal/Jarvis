@@ -500,6 +500,35 @@ export function reduceHudEvent(
           `Windows action failed: ${event.payload.code}`,
         ),
       };
+    case "system.capture.started":
+      return {
+        ...state,
+        mode: "THINKING",
+        modeReason: `Capturing ${event.payload.mode.replaceAll("_", " ")}`,
+        activity: appendActivity(state, "Screen capture started"),
+      };
+    case "system.capture.completed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: "Screen context attached",
+        activity: appendActivity(state, "Screen context captured"),
+      };
+    case "system.capture.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(state, "Screen capture failed"),
+      };
+    case "conversation.context.captured":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `Image context: ${event.payload.activeApplication ?? event.payload.mode}`,
+        ),
+      };
     case "approval.requested":
       return {
         ...state,

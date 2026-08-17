@@ -1,6 +1,6 @@
 # Windows development and runtime
 
-Status: Implemented through Phase 18
+Status: Implemented through Phase 19
 Last updated: 2026-08-17
 
 ## Prerequisites
@@ -60,6 +60,12 @@ V1 voice is press-to-activate. Ending the session stops microphone tracks and cl
 Core exposes a typed Windows adapter for opening allow-listed Notepad, Calculator, Explorer, and Windows Terminal; opening validated HTTP(S) URLs; opening/revealing validated local paths; and reading running-window/process summaries or system statistics. It never accepts an executable name or shell command from the caller. Process execution uses fixed executable/argument arrays, bounded output/time, hidden windows, and non-interactive mode.
 
 Read operations use permission Level 0. Launch/open/reveal operations use Level 2 and require an exact one-use approval receipt. Administrator actions, generic process termination, volume mutation, and arbitrary window control are not implemented. Display placement remains in the Tauri native host.
+
+## Explicit screen context
+
+The authenticated `POST /context/capture` command captures either the current foreground window or the primary display after the centralized `system.capture` permission check. The Windows adapter uses foreground-window coordinates from `user32` and screen copying from `System.Drawing`; it never accepts a script or output path from the caller.
+
+Capture is request-driven only. PNG data is limited to 10 MiB, held in the response as an ephemeral typed attachment, and the temporary file is deleted after reading even when capture fails. Events and logs contain only context ID, mode, dimensions, byte count, and optional window title—not pixels. There is no background or continuous screen recording.
 
 ## Data and recovery
 

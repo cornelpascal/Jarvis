@@ -55,6 +55,8 @@ import {
   type DeploymentProposal,
   type SystemControlProvider,
   systemActionSchema,
+  screenshotRequestSchema,
+  type ScreenshotProvider,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -90,6 +92,7 @@ export interface CoreServerOptions {
   gitTaskManager: GitTaskProvider;
   deploymentManager: DeploymentManagerProvider;
   systemControlProvider: SystemControlProvider;
+  screenshotProvider: ScreenshotProvider;
 }
 
 export interface CoreServer {
@@ -1179,6 +1182,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/deployment/configs" ||
         request.url === "/deployment/execute" ||
         request.url === "/system/action" ||
+        request.url === "/context/capture" ||
         /^\/deployment\/proposals\/[^/]+\/save$/.test(request.url ?? "") ||
         /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
@@ -1703,6 +1707,85 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               code: "SYSTEM_ACTION_FAILED",
               message,
               retryable: false,
+            });
+          }
+        }
+        if (request.url === "/context/capture") {
+          const input = screenshotRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "system.capture",
+                resource: `display:${input.mode}`,
+                reason: "Capture the explicitly requested screen context",
+                arguments: { mode: input.mode },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          await options.bus.publish(
+            options.bus.create("system.capture.started", "core.screenshot", {
+              requestId: input.requestId,
+              mode: input.mode,
+            }),
+          );
+          try {
+            const result = await options.screenshotProvider.capture(input);
+            await options.bus.publish(
+              options.bus.create(
+                "system.capture.completed",
+                "core.screenshot",
+                {
+                  requestId: result.requestId,
+                  contextId: result.contextId,
+                  mode: result.mode,
+                  byteLength: result.byteLength,
+                  width: result.width,
+                  height: result.height,
+                  ...(result.activeApplication
+                    ? { activeApplication: result.activeApplication }
+                    : {}),
+                },
+              ),
+            );
+            await options.bus.publish(
+              options.bus.create(
+                "conversation.context.captured",
+                "core.screenshot",
+                {
+                  contextId: result.contextId,
+                  kind: "image",
+                  mimeType: result.mimeType,
+                  mode: result.mode,
+                  ...(result.activeApplication
+                    ? { activeApplication: result.activeApplication }
+                    : {}),
+                  capturedAt: result.capturedAt,
+                  retention: result.retention,
+                },
+              ),
+            );
+            return sendJson(response, 200, result);
+          } catch (cause) {
+            const message =
+              cause instanceof Error ? cause.message : "Screen capture failed";
+            await options.bus.publish(
+              options.bus.create("system.capture.failed", "core.screenshot", {
+                requestId: input.requestId,
+                mode: input.mode,
+                code: "SCREEN_CAPTURE_FAILED",
+                message,
+              }),
+            );
+            return sendJson(response, 409, {
+              code: "SCREEN_CAPTURE_FAILED",
+              message,
+              retryable: true,
             });
           }
         }

@@ -10,5 +10,6 @@ export * from "./codex.js";
 export * from "./git.js";
 export * from "./deployment.js";
 export * from "./system.js";
+export * from "./screenshot.js";
 export * from "./transport.js";
 export * from "./voice.js";

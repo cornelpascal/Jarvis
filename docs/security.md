@@ -323,6 +323,9 @@ The developer log viewer is separate from the conversation. The UI shows user-me
 - Project memory is not retrieved outside its project without explicit cross-project action.
 - Users can inspect and delete memories.
 - Continuous capture is absent in V1; explicit screenshots show a capture indicator and purpose.
+- Screenshot capture is mediated as `system.capture`, limited to 10 MiB PNG, and deletes its temporary file in a `finally` path.
+- Pixel bytes are never written to events, audit records, normal logs, or SQLite; only bounded attachment metadata is durable.
+- The initiating authenticated client receives the ephemeral image and must make any later provider egress explicit and policy-bound.
 
 ## Supply-chain and licensing controls
 
