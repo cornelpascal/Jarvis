@@ -7,6 +7,7 @@ import type {
   CodingTask,
   CodingTaskCreate,
 } from "./codex.js";
+import type { SystemAction, SystemActionResult } from "./system.js";
 
 export interface OperationContext {
   signal: AbortSignal;
@@ -109,6 +110,7 @@ export interface SecretProvider {
 
 export interface SystemControlProvider {
   health(): Promise<ProviderHealth>;
+  execute(action: SystemAction): Promise<SystemActionResult>;
 }
 
 export interface ScreenshotProvider {

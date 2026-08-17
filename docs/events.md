@@ -18,6 +18,7 @@ Current types through Phase 8:
 | `jarvis.test`                               | Deterministic protocol/integration fixtures | Durable by default   |
 | `system.health`                             | Structured core/database health snapshot    | Durable              |
 | `system.telemetry`                          | CPU/RAM/disk/network/provider readings      | Transient            |
+| `system.action.started/completed/failed`    | Allow-listed Windows action lifecycle       | Durable              |
 | `conversation.message.added`                | User-facing conversation projection         | Durable when emitted |
 | `conversation.route.selected`               | Ranked route/tool shortlist, not permission | Durable              |
 | `project.scan.started`                      | Configured-root scan began                  | Durable              |

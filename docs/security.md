@@ -62,6 +62,8 @@ Phase 16 deployment approval binds project, environment, adapter type, and the c
 
 Phase 17 proposal analysis reads only fixed deployment artifacts with canonical containment, file-type, symlink, size, and count limits. It ignores README prose as an instruction source and extracts only environment-variable names. Proposal creation cannot call an adapter and tests assert zero deployment runs. Saving is separately approved and digest-bound; unresolved proposals fail closed. First execution remains an independent Level 3 approval.
 
+Phase 18 exposes no generic Windows shell. System actions are a closed discriminated union mapped to fixed executables/arguments. URLs are HTTP(S)-only; filesystem actions require existing non-symlink files/directories; process calls are non-interactive, bounded, and hidden. Read actions are Level 0 and host UI mutations Level 2. No administrator action or security-setting modification is implemented.
+
 Phase 12 makes isolated Git worktrees mandatory for Core-created coding tasks. Source dirty state is observed but never reset or copied. Canonical containment and persisted ownership protect cleanup; dirty task worktrees are preserved. Repositories tracking `.env`, PEM, or private-key files are refused before checkout, and no non-Git fallback edits the registered source directory.
 
 ## Assets

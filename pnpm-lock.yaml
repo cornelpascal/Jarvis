@@ -189,6 +189,9 @@ importers:
       '@jarvis/logging':
         specifier: workspace:*
         version: link:../../packages/logging
+      '@jarvis/os-abstractions':
+        specifier: workspace:*
+        version: link:../../packages/os-abstractions
       '@jarvis/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions

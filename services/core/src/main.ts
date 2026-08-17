@@ -12,6 +12,7 @@ import { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
 import { SqlitePermissionBroker } from "@jarvis/permissions";
 import { SqliteDeploymentManager } from "@jarvis/deployment";
+import { WindowsSystemControlProvider } from "@jarvis/os-abstractions/windows";
 import { OpenAiRealtimeGateway } from "@jarvis/voice";
 import { OpenAiResearchProvider } from "@jarvis/research";
 import { PlaywrightBrowserProvider } from "@jarvis/browser";
@@ -67,6 +68,7 @@ const taskVerification = new TaskVerificationService({ database, bus });
 const gitTaskManager = new GitTaskManager(database);
 const permissionBroker = new SqlitePermissionBroker({ database, bus });
 const deploymentManager = new SqliteDeploymentManager({ database, bus });
+const systemControlProvider = new WindowsSystemControlProvider();
 const server = createCoreServer({
   config,
   environment,
@@ -85,6 +87,7 @@ const server = createCoreServer({
   permissionBroker,
   gitTaskManager,
   deploymentManager,
+  systemControlProvider,
 });
 
 await server.start();

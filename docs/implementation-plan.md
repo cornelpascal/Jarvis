@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 17 — DONE**
-Next phase: **Phase 18 — NOT_STARTED**
+Current phase: **Phase 18 — DONE**
+Next phase: **Phase 19 — NOT_STARTED**
 
 ## Status definitions
 
@@ -51,7 +51,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 15 — Git commit/push                 | DONE        | Explicit, resolved, audited commit/push flow; no auto-push                        |
 | 16 — Deployment system               | DONE        | Typed adapters, validated configured deploy, health events                        |
 | 17 — Deployment config auto-creation | DONE        | Missing-config analysis/proposal/approval/save workflow                           |
-| 18 — Windows system tools            | NOT_STARTED | Allow-listed least-privilege control and telemetry adapters                       |
+| 18 — Windows system tools            | DONE        | Allow-listed least-privilege control and telemetry adapters                       |
 | 19 — Screenshot context              | NOT_STARTED | Explicit active-window/display capture as conversation context                    |
 | 20 — Memory                          | NOT_STARTED | Scoped explicit memories and relevant retrieval                                   |
 | 21 — Notifications/background work   | NOT_STARTED | Concurrent jobs, non-blocking conversation, rate-aware notifications              |
@@ -256,11 +256,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 18 — Windows system tools
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Windows adapters for allow-listed application/URL/volume/running apps/terminal/explorer/reveal/stats/monitors/window operations; native capability discovery; least privilege; permissions.
 - **Dependencies:** Phase 14; OS abstraction package and Tauri/native host.
 - **Acceptance:** Safe actions/telemetry work on supported Windows without admin; risky/elevated actions request approval; unsupported capabilities fail clearly; no generic shell exposed.
 - **Tests:** Adapter unit mocks, argument/path validation, timeout/process cleanup, permission denial, telemetry parsing, monitor/window smoke, non-admin verification.
+- **Evidence:** 75 unit/integration tests pass. `WindowsSystemControlProvider` exposes only typed application/URL/Explorer/reveal/Terminal/running-app/stat actions, maps them to fixed executables and argument arrays, validates file/directory targets, uses bounded non-interactive process execution, and reports unsupported platforms. Core routes read actions at Level 0 and host mutations at Level 2 with typed lifecycle events. Existing telemetry and Tauri monitor/window placement remain the native sources for continuous state.
+- **Known limitations:** Volume, arbitrary close-process, cross-process window move/resize, and administrator operations are intentionally absent until a dedicated native implementation can enforce ownership and reliable Windows APIs. Running-app discovery uses a fixed PowerShell query; application launch is limited to four allow-listed executables.
 - **Known risks:** Localization/WMI/CIM variance, UWP apps, admin-only operations, antivirus, OS version differences.
 
 ### Phase 19 — Screenshot context

@@ -477,6 +477,29 @@ export function reduceHudEvent(
         modeReason: "Deployment configuration saved",
         activity: appendActivity(state, "Deployment configuration saved"),
       };
+    case "system.action.started":
+      return {
+        ...state,
+        modeReason: `Windows action: ${event.payload.action}`,
+        activity: appendActivity(state, "Windows action started"),
+      };
+    case "system.action.completed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: event.payload.message,
+        activity: appendActivity(state, "Windows action complete"),
+      };
+    case "system.action.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(
+          state,
+          `Windows action failed: ${event.payload.code}`,
+        ),
+      };
     case "approval.requested":
       return {
         ...state,

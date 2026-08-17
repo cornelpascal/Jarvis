@@ -369,6 +369,21 @@ export const eventPayloadSchemas = {
     environment: z.string().min(1),
     adapterType: z.string().min(1),
   }),
+  "system.action.started": z.strictObject({
+    requestId: z.uuid(),
+    action: z.string().min(1),
+  }),
+  "system.action.completed": z.strictObject({
+    requestId: z.uuid(),
+    action: z.string().min(1),
+    message: z.string().min(1),
+  }),
+  "system.action.failed": z.strictObject({
+    requestId: z.uuid(),
+    action: z.string().min(1),
+    code: z.string().min(1),
+    message: z.string().min(1),
+  }),
   "approval.requested": z.strictObject({
     approvalId: z.string().min(1),
     action: z.string().min(1),

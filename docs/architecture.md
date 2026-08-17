@@ -395,6 +395,8 @@ Git status/diff/inspection and isolated task edits are normal workflow operation
 
 Deployment uses a discriminated shared config and an adapter registry. SQLite stores only validated project/environment configs with secret references, never secret values. Core binds Level 3 approval to a config digest before `SqliteDeploymentManager` dispatches a registered adapter and records the run. Unknown or merely schema-supported adapters fail closed. See [deployment.md](./deployment.md).
 
+Windows host control is behind `SystemControlProvider`. The initial adapter maps a small typed action union to fixed Windows executables and validates all URL/path inputs. Tauri remains responsible for global hotkeys and display/window placement. macOS can replace these providers without changing Core routing or permission policy.
+
 Deployment configurations are discriminated typed records. Adapters eventually include Docker Compose, Docker, PowerShell, SSH script, IIS, Node service, Windows service, CI/CD, and custom-approved execution.
 
 If configuration is missing, `deploy` creates an analysis job and proposal only. Evidence, unresolved values, validation results, health check, rollback strategy, and named secret references are presented. First execution happens only after validation and explicit action-bound approval.

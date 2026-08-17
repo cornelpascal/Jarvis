@@ -1,6 +1,6 @@
 # Windows development and runtime
 
-Status: Implemented through Phase 4
+Status: Implemented through Phase 18
 Last updated: 2026-08-17
 
 ## Prerequisites
@@ -54,6 +54,12 @@ corepack pnpm dev
 Never use a `VITE_` prefix for this key; Vite-prefixed values are renderer-visible. The microphone permission prompt comes from WebView2 on first use. The bottom rail exposes voice activation, mute/unmute, and session termination. Input/output devices are supported by the provider contract and Chromium device APIs; the settings selector is scheduled for the full settings phase.
 
 V1 voice is press-to-activate. Ending the session stops microphone tracks and closes WebRTC. Realtime call creation times out, connection loss retries twice, and missing credentials produce an explicit unavailable state.
+
+## System tools
+
+Core exposes a typed Windows adapter for opening allow-listed Notepad, Calculator, Explorer, and Windows Terminal; opening validated HTTP(S) URLs; opening/revealing validated local paths; and reading running-window/process summaries or system statistics. It never accepts an executable name or shell command from the caller. Process execution uses fixed executable/argument arrays, bounded output/time, hidden windows, and non-interactive mode.
+
+Read operations use permission Level 0. Launch/open/reveal operations use Level 2 and require an exact one-use approval receipt. Administrator actions, generic process termination, volume mutation, and arbitrary window control are not implemented. Display placement remains in the Tauri native host.
 
 ## Data and recovery
 

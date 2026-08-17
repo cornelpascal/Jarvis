@@ -53,6 +53,8 @@ import {
   deploymentExecuteRequestSchema,
   type DeploymentPreview,
   type DeploymentProposal,
+  type SystemControlProvider,
+  systemActionSchema,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -87,6 +89,7 @@ export interface CoreServerOptions {
   permissionBroker: PermissionBroker;
   gitTaskManager: GitTaskProvider;
   deploymentManager: DeploymentManagerProvider;
+  systemControlProvider: SystemControlProvider;
 }
 
 export interface CoreServer {
@@ -1175,6 +1178,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         /^\/git\/tasks\/[^/]+\/push$/.test(request.url ?? "") ||
         request.url === "/deployment/configs" ||
         request.url === "/deployment/execute" ||
+        request.url === "/system/action" ||
         /^\/deployment\/proposals\/[^/]+\/save$/.test(request.url ?? "") ||
         /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
@@ -1641,6 +1645,63 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               code: "DEPLOYMENT_FAILED",
               message:
                 cause instanceof Error ? cause.message : "Deployment failed",
+              retryable: false,
+            });
+          }
+        }
+        if (request.url === "/system/action") {
+          const action = systemActionSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          const readOnly = ["get_running_apps", "get_system_stats"].includes(
+            action.action,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: readOnly ? "system.read" : "system.control",
+                resource: `system:${action.action}`,
+                reason: readOnly
+                  ? "Read local Windows system state"
+                  : `Perform the allow-listed Windows action ${action.action}`,
+                arguments: action,
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          await options.bus.publish(
+            options.bus.create("system.action.started", "core.system", {
+              requestId: action.requestId,
+              action: action.action,
+            }),
+          );
+          try {
+            const result = await options.systemControlProvider.execute(action);
+            await options.bus.publish(
+              options.bus.create("system.action.completed", "core.system", {
+                requestId: action.requestId,
+                action: action.action,
+                message: result.message,
+              }),
+            );
+            return sendJson(response, 200, result);
+          } catch (cause) {
+            const message =
+              cause instanceof Error ? cause.message : "System action failed";
+            await options.bus.publish(
+              options.bus.create("system.action.failed", "core.system", {
+                requestId: action.requestId,
+                action: action.action,
+                code: "SYSTEM_ACTION_FAILED",
+                message,
+              }),
+            );
+            return sendJson(response, 409, {
+              code: "SYSTEM_ACTION_FAILED",
+              message,
               retryable: false,
             });
           }

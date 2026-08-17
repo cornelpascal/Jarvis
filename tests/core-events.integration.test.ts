@@ -29,6 +29,7 @@ import type {
   TaskVerificationProvider,
   GitTaskProvider,
   DeploymentManagerProvider,
+  SystemControlProvider,
   WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
@@ -233,6 +234,20 @@ const deploymentManager: DeploymentManagerProvider = {
     throw new Error("No proposal in mock");
   },
 };
+const systemControlProvider: SystemControlProvider = {
+  health: () =>
+    Promise.resolve({
+      status: "available",
+      capabilities: ["get_system_stats"],
+    }),
+  execute: (action) =>
+    Promise.resolve({
+      requestId: action.requestId,
+      action: action.action,
+      success: true,
+      message: "Mock system action complete",
+    }),
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -322,6 +337,7 @@ describe("core event stream", () => {
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
       gitTaskManager,
       deploymentManager,
+      systemControlProvider,
     });
     await server.start();
     await bus.publish(
@@ -383,6 +399,7 @@ describe("core event stream", () => {
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
       gitTaskManager,
       deploymentManager,
+      systemControlProvider,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -432,6 +449,7 @@ describe("core event stream", () => {
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
       gitTaskManager,
       deploymentManager,
+      systemControlProvider,
     });
     await server.start();
     const unauthorized = await fetch(
