@@ -11,42 +11,46 @@ Every event contains a UUID, global sequence, ISO timestamp, registered namespac
 
 Current types through Phase 8:
 
-| Type                                      | Purpose                                     | Durability           |
-| ----------------------------------------- | ------------------------------------------- | -------------------- |
-| `jarvis.ready`                            | Core startup and health location            | Durable              |
-| `jarvis.state.changed`                    | Authoritative central HUD state             | Durable              |
-| `jarvis.test`                             | Deterministic protocol/integration fixtures | Durable by default   |
-| `system.health`                           | Structured core/database health snapshot    | Durable              |
-| `system.telemetry`                        | CPU/RAM/disk/network/provider readings      | Transient            |
-| `conversation.message.added`              | User-facing conversation projection         | Durable when emitted |
-| `conversation.route.selected`             | Ranked route/tool shortlist, not permission | Durable              |
-| `project.scan.started`                    | Configured-root scan began                  | Durable              |
-| `project.discovered`                      | Candidate and signal evidence found         | Durable              |
-| `project.scan.completed`                  | Bounded discovery counts                    | Durable              |
-| `project.scan.failed`                     | Registry-level failure                      | Durable              |
-| `project.registered`, `project.updated`   | Project-panel projection contracts          | Durable              |
-| `project.removed`, `project.selected`     | Registry removal/current selection          | Durable              |
-| `project.indexing`, `project.indexed`     | Local index lifecycle and counts            | Durable              |
-| `project.search.started`                  | Deterministic retrieval began               | Durable              |
-| `project.search.completed`                | Retrieval result count                      | Durable              |
-| `project.search.failed`                   | Structured retrieval failure                | Durable              |
-| `codex.agent.progress`                    | Active-agent projection contract            | Durable when emitted |
-| `approval.requested`                      | Approval-surface projection contract        | Durable when emitted |
-| `reference.display.requested`             | Typed Reference Deck mode and items         | Durable when emitted |
-| `voice.connected`, `voice.listening`      | Realtime voice connection/readiness         | Transient            |
-| `voice.user_speaking`, `voice.processing` | Input turn lifecycle                        | Transient            |
-| `voice.speaking`, `voice.interrupted`     | Output audio/barge-in lifecycle             | Transient            |
-| `voice.muted.changed`                     | Explicit microphone mute state              | Transient            |
-| `voice.disconnected`, `voice.failed`      | Visible voice termination/failure           | Transient            |
-| `research.started`, `research.completed`  | Durable research lifecycle/result summary   | Durable              |
-| `research.searching`                      | Active provider progress                    | Transient            |
-| `research.source_found`                   | Attributable, web-tainted source            | Durable              |
-| `research.failed`                         | Safe provider failure state                 | Durable              |
-| `reference.evaluating`                    | Transient visual-policy evaluation start    | Transient            |
-| `reference.evaluated`                     | Explainable score/mode/display decision     | Durable              |
-| `browser.action.started`                  | Typed browser operation start               | Durable              |
-| `browser.action.completed`                | Safe tab/page result metadata               | Durable              |
-| `browser.action.failed`                   | Bounded browser failure                     | Durable              |
+| Type                                        | Purpose                                     | Durability           |
+| ------------------------------------------- | ------------------------------------------- | -------------------- |
+| `jarvis.ready`                              | Core startup and health location            | Durable              |
+| `jarvis.state.changed`                      | Authoritative central HUD state             | Durable              |
+| `jarvis.test`                               | Deterministic protocol/integration fixtures | Durable by default   |
+| `system.health`                             | Structured core/database health snapshot    | Durable              |
+| `system.telemetry`                          | CPU/RAM/disk/network/provider readings      | Transient            |
+| `conversation.message.added`                | User-facing conversation projection         | Durable when emitted |
+| `conversation.route.selected`               | Ranked route/tool shortlist, not permission | Durable              |
+| `project.scan.started`                      | Configured-root scan began                  | Durable              |
+| `project.discovered`                        | Candidate and signal evidence found         | Durable              |
+| `project.scan.completed`                    | Bounded discovery counts                    | Durable              |
+| `project.scan.failed`                       | Registry-level failure                      | Durable              |
+| `project.registered`, `project.updated`     | Project-panel projection contracts          | Durable              |
+| `project.removed`, `project.selected`       | Registry removal/current selection          | Durable              |
+| `project.indexing`, `project.indexed`       | Local index lifecycle and counts            | Durable              |
+| `project.search.started`                    | Deterministic retrieval began               | Durable              |
+| `project.search.completed`                  | Retrieval result count                      | Durable              |
+| `project.search.failed`                     | Structured retrieval failure                | Durable              |
+| `codex.agent.progress`                      | Active-agent projection contract            | Durable when emitted |
+| `codex.task.created`, `codex.agent.started` | Coding task/thread lifecycle                | Durable              |
+| `codex.waiting_approval`                    | App Server request needs mediation          | Durable              |
+| `codex.diff.ready`                          | Latest structured turn diff                 | Durable              |
+| `codex.completed`, `codex.failed`           | Visible terminal/review outcome             | Durable              |
+| `approval.requested`                        | Approval-surface projection contract        | Durable when emitted |
+| `reference.display.requested`               | Typed Reference Deck mode and items         | Durable when emitted |
+| `voice.connected`, `voice.listening`        | Realtime voice connection/readiness         | Transient            |
+| `voice.user_speaking`, `voice.processing`   | Input turn lifecycle                        | Transient            |
+| `voice.speaking`, `voice.interrupted`       | Output audio/barge-in lifecycle             | Transient            |
+| `voice.muted.changed`                       | Explicit microphone mute state              | Transient            |
+| `voice.disconnected`, `voice.failed`        | Visible voice termination/failure           | Transient            |
+| `research.started`, `research.completed`    | Durable research lifecycle/result summary   | Durable              |
+| `research.searching`                        | Active provider progress                    | Transient            |
+| `research.source_found`                     | Attributable, web-tainted source            | Durable              |
+| `research.failed`                           | Safe provider failure state                 | Durable              |
+| `reference.evaluating`                      | Transient visual-policy evaluation start    | Transient            |
+| `reference.evaluated`                       | Explainable score/mode/display decision     | Durable              |
+| `browser.action.started`                    | Typed browser operation start               | Durable              |
+| `browser.action.completed`                  | Safe tab/page result metadata               | Durable              |
+| `browser.action.failed`                     | Bounded browser failure                     | Durable              |
 
 Voice lifecycle events are accepted only through the authenticated `/voice/events` command boundary and are revalidated before publication. Input and assistant transcript completions become durable `conversation.message.added` events; high-frequency audio deltas never enter the event bus or SQLite.
 

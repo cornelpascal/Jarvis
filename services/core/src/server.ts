@@ -16,6 +16,8 @@ import {
   PROTOCOL_VERSION,
   eventStreamSubscribeSchema,
   browserActionSchema,
+  codingInstructionRequestSchema,
+  codingTaskRequestSchema,
   projectEnabledRequestSchema,
   projectIndexRequestSchema,
   projectRegisterRequestSchema,
@@ -25,6 +27,8 @@ import {
   voiceClientSignalSchema,
   type CapabilityManifest,
   type BrowserProvider,
+  type CodingAgentProvider,
+  type CodingAgentEvent,
   type BrowserAction,
   type BrowserActionResult,
   type ProjectRegistryProvider,
@@ -62,6 +66,7 @@ export interface CoreServerOptions {
   browserProvider: BrowserProvider;
   projectRegistry: ProjectRegistryProvider;
   projectSearch: ProjectSearchProvider;
+  codingAgentProvider: CodingAgentProvider;
 }
 
 export interface CoreServer {
@@ -489,6 +494,75 @@ async function executeProjectSearch(
   }
 }
 
+async function publishCodingAgentEvent(
+  bus: LocalEventBus,
+  provider: CodingAgentProvider,
+  event: CodingAgentEvent,
+): Promise<void> {
+  const task = await provider.getStatus(event.taskId);
+  if (event.state === "QUEUED")
+    await bus.publish(
+      bus.create("codex.task.created", "codex.manager", {
+        taskId: task.id,
+        projectId: task.projectId,
+        title: task.title,
+        state: "QUEUED",
+      }),
+    );
+  if (event.label === "Codex thread started" && task.threadId)
+    await bus.publish(
+      bus.create("codex.agent.started", "codex.manager", {
+        agentRunId: task.id,
+        taskId: task.id,
+        projectId: task.projectId,
+        threadId: task.threadId,
+      }),
+    );
+  await bus.publish(
+    bus.create("codex.agent.progress", "codex.manager", {
+      agentRunId: task.id,
+      taskId: task.id,
+      projectId: task.projectId,
+      label: "CODEX",
+      title: task.title,
+      state: event.state ?? task.state,
+    }),
+  );
+  if (event.type === "approval")
+    await bus.publish(
+      bus.create("codex.waiting_approval", "codex.manager", {
+        taskId: task.id,
+        projectId: task.projectId,
+        method: event.label,
+      }),
+    );
+  if (event.type === "diff")
+    await bus.publish(
+      bus.create("codex.diff.ready", "codex.manager", {
+        taskId: task.id,
+        projectId: task.projectId,
+        diff: event.detail ?? "",
+      }),
+    );
+  if (task.state === "READY_FOR_REVIEW" || task.state === "COMPLETED")
+    await bus.publish(
+      bus.create("codex.completed", "codex.manager", {
+        taskId: task.id,
+        projectId: task.projectId,
+        state: task.state,
+      }),
+    );
+  if (event.type === "error")
+    await bus.publish(
+      bus.create("codex.failed", "codex.manager", {
+        taskId: task.id,
+        projectId: task.projectId,
+        code: "CODEX_TURN_FAILED",
+        message: event.detail ?? event.label,
+      }),
+    );
+}
+
 function sendStreamMessage(
   client: WebSocket,
   message: EventStreamServerMessage,
@@ -524,10 +598,11 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
     environment: options.environment,
   });
   const capabilities = async (): Promise<CapabilityManifest> => {
-    const [voice, research, browser] = await Promise.all([
+    const [voice, research, browser, codex] = await Promise.all([
       options.voiceGateway.health(),
       options.researchProvider.health(),
       options.browserProvider.health(),
+      options.codingAgentProvider.health(),
     ]);
     return {
       protocolVersion: PROTOCOL_VERSION,
@@ -548,6 +623,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         voice: voice.status,
         research: research.status,
         browser: browser.status,
+        codex: codex.status,
       },
     };
   };
@@ -590,6 +666,37 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
           retryable: false,
         });
       return sendJson(response, 200, options.projectRegistry.snapshot());
+    }
+    if (
+      request.method === "GET" &&
+      /^\/codex\/tasks\/[^/]+$/.test(request.url ?? "")
+    ) {
+      if (
+        !allowedOrigin(origin) ||
+        !tokenMatches(requestToken(request), options.sessionToken)
+      )
+        return sendJson(response, 401, {
+          code: "UNAUTHORIZED",
+          message: "A valid launch-scoped token is required",
+          retryable: false,
+        });
+      const taskId = request.url?.split("/").at(3);
+      if (!taskId) throw new Error("Task identifier is missing");
+      try {
+        return sendJson(
+          response,
+          200,
+          await options.codingAgentProvider.getStatus(
+            decodeURIComponent(taskId),
+          ),
+        );
+      } catch (cause) {
+        return sendJson(response, 404, {
+          code: "TASK_NOT_FOUND",
+          message: cause instanceof Error ? cause.message : "Task not found",
+          retryable: false,
+        });
+      }
     }
     if (request.method === "DELETE" && request.url?.startsWith("/projects/")) {
       if (
@@ -635,6 +742,10 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/projects/register" ||
         request.url === "/projects/index" ||
         request.url === "/projects/search" ||
+        request.url === "/codex/tasks" ||
+        /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff)$/.test(
+          request.url ?? "",
+        ) ||
         request.url === "/projects/select" ||
         /^\/projects\/[^/]+\/enabled$/.test(request.url ?? ""))
     ) {
@@ -760,6 +871,85 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             response,
             200,
             options.projectRegistry.select(input.projectId),
+          );
+        }
+        if (request.url === "/codex/tasks") {
+          const input = codingTaskRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          const project = options.projectRegistry
+            .snapshot()
+            .projects.find(
+              (candidate) =>
+                candidate.id === input.projectId && candidate.enabled,
+            );
+          if (!project)
+            return sendJson(response, 404, {
+              code: "PROJECT_NOT_AVAILABLE",
+              message: "Project is missing or disabled",
+              retryable: false,
+            });
+          return sendJson(
+            response,
+            201,
+            await options.codingAgentProvider.createTask({
+              ...input,
+              workingDirectory: project.path,
+            }),
+          );
+        }
+        if (
+          /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff)$/.test(
+            request.url ?? "",
+          )
+        ) {
+          const parts = request.url?.split("/");
+          const taskId = parts?.at(3);
+          const action = parts?.at(4);
+          if (!taskId || !action)
+            throw new Error("Task action target is missing");
+          const decodedTaskId = decodeURIComponent(taskId);
+          if (action === "start")
+            return sendJson(
+              response,
+              200,
+              await options.codingAgentProvider.startTask(decodedTaskId),
+            );
+          if (action === "resume")
+            return sendJson(
+              response,
+              200,
+              await options.codingAgentProvider.resumeTask(decodedTaskId),
+            );
+          if (action === "pause")
+            return sendJson(
+              response,
+              200,
+              await options.codingAgentProvider.pauseTask(decodedTaskId),
+            );
+          if (action === "cancel")
+            return sendJson(
+              response,
+              200,
+              await options.codingAgentProvider.cancelTask(decodedTaskId),
+            );
+          if (action === "diff")
+            return sendJson(response, 200, {
+              taskId: decodedTaskId,
+              diff: await options.codingAgentProvider.requestDiff(
+                decodedTaskId,
+              ),
+            });
+          const input = codingInstructionRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          return sendJson(
+            response,
+            200,
+            await options.codingAgentProvider.sendInstruction(
+              decodedTaskId,
+              input.instruction,
+            ),
           );
         }
         if (/^\/projects\/[^/]+\/enabled$/.test(request.url ?? "")) {
@@ -940,6 +1130,10 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         });
     }
   });
+  const unsubscribeCoding = options.codingAgentProvider.subscribeEvents(
+    (event) =>
+      publishCodingAgentEvent(options.bus, options.codingAgentProvider, event),
+  );
   return {
     url: `http://${options.config.network.bind_host}:${String(options.config.network.port)}`,
     start: () =>
@@ -960,7 +1154,9 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
       }),
     stop: async () => {
       unsubscribe();
+      unsubscribeCoding();
       await options.browserProvider.close();
+      await options.codingAgentProvider.close();
       for (const [client, state] of clients) {
         clearTimeout(state.subscribeTimer);
         client.close(1001, "Core stopping");

@@ -226,6 +226,39 @@ export const eventPayloadSchemas = {
     title: z.string().min(1),
     state: z.string().min(1),
   }),
+  "codex.task.created": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    title: z.string().min(1),
+    state: z.literal("QUEUED"),
+  }),
+  "codex.agent.started": z.strictObject({
+    agentRunId: z.string().min(1),
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    threadId: z.string().min(1),
+  }),
+  "codex.waiting_approval": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    method: z.string().min(1),
+  }),
+  "codex.diff.ready": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    diff: z.string(),
+  }),
+  "codex.completed": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    state: z.enum(["READY_FOR_REVIEW", "COMPLETED"]),
+  }),
+  "codex.failed": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    code: z.string().min(1),
+    message: z.string().min(1),
+  }),
   "approval.requested": z.strictObject({
     approvalId: z.string().min(1),
     action: z.string().min(1),

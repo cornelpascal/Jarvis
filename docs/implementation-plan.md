@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 10 — DONE**
-Next phase: **Phase 11 — NOT_STARTED**
+Current phase: **Phase 11 — DONE**
+Next phase: **Phase 12 — NOT_STARTED**
 
 ## Status definitions
 
@@ -44,7 +44,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 8 — Browser Agent                    | DONE        | Isolated Playwright Chromium and typed browser actions                            |
 | 9 — Project Registry                 | DONE        | Configurable project discovery and metadata                                       |
 | 10 — Project index/retrieval         | DONE        | Deterministic layered local project search                                        |
-| 11 — Codex integration               | NOT_STARTED | Structured `CodingAgentProvider` with background task stream                      |
+| 11 — Codex integration               | DONE        | Structured `CodingAgentProvider` with background task stream                      |
 | 12 — Worktree manager                | NOT_STARTED | One isolated worktree/branch per significant coding task                          |
 | 13 — Verification + diff UI          | NOT_STARTED | Configured checks and Reference Deck diff review                                  |
 | 14 — Permission broker               | NOT_STARTED | Complete mediation, risk policy, approvals, denial/injection tests                |
@@ -181,12 +181,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 11 — Codex integration
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** `CodingAgentProvider`, Codex discovery/version/capability handshake, App Server process supervision, JSON-RPC correlation, generated adapter-local types, threads/turns/events/approvals, mock provider.
 - **Dependencies:** Phases 1, 5, 9–10; installed compatible Codex; task schema.
 - **Acceptance:** Create/start/steer/pause/resume/cancel/query a mock and real supported Codex task; structured progress appears; conversation remains responsive; unavailable/incompatible Codex is explicit.
 - **Tests:** Recorded JSON-RPC transcript contract tests, request correlation, malformed messages, process crash/reconnect, approvals, event mapping, mock integration, real smoke if installed.
-- **Known risks:** Experimental protocol changes, provider process leaks, event volume, approval semantic mismatch, installed version variance.
+- **Evidence:** 54 unit/integration tests pass. A deterministic fake App Server verifies initialize/thread/turn request correlation and structured item/diff/completion mapping; the mock covers steering lifecycle; the installed Codex 0.147 App Server completes a real initialize handshake. Core exposes authenticated task APIs and bridges provider events into typed HUD state. Format, lint, typecheck, build, and native smoke pass.
+- **Known limitations:** App Server remains experimental and the adapter uses a validated structural subset rather than vendoring its full generated schema. Pause maps to turn interruption and resume starts a continuation turn. Central approval fulfillment waits for Phase 14; unexpected requests are visible and denied. Worktree enforcement begins in Phase 12.
 
 ### Phase 12 — Worktree manager
 

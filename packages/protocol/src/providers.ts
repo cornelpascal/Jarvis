@@ -2,6 +2,11 @@ import type { VoiceRuntimeState } from "./voice.js";
 import type { ResearchRequest, ResearchResult } from "./research.js";
 import type { BrowserAction, BrowserActionResult } from "./browser.js";
 import type { ProjectSearchRequest, ProjectSearchResult } from "./projects.js";
+import type {
+  CodingAgentEventListener,
+  CodingTask,
+  CodingTaskCreate,
+} from "./codex.js";
 
 export interface OperationContext {
   signal: AbortSignal;
@@ -73,6 +78,16 @@ export interface BrowserProvider {
 
 export interface CodingAgentProvider {
   health(): Promise<ProviderHealth>;
+  createTask(input: CodingTaskCreate): Promise<CodingTask>;
+  startTask(taskId: string): Promise<CodingTask>;
+  resumeTask(taskId: string): Promise<CodingTask>;
+  pauseTask(taskId: string): Promise<CodingTask>;
+  cancelTask(taskId: string): Promise<CodingTask>;
+  sendInstruction(taskId: string, instruction: string): Promise<CodingTask>;
+  getStatus(taskId: string): Promise<CodingTask>;
+  subscribeEvents(listener: CodingAgentEventListener): () => void;
+  requestDiff(taskId: string): Promise<string>;
+  close(): Promise<void>;
 }
 
 export interface ProjectSearchProvider {

@@ -356,6 +356,10 @@ Search results carry evidence, relative paths, indexed revision/freshness, match
 
 Phase 10 implements the deterministic portion in `SqliteProjectSearch`: canonical tree enumeration, safe-text hashing, symbol extraction, SQLite document/FTS5 persistence, bounded ripgrep JSON execution with argument arrays, and ranked evidence de-duplication. The index refreshes on demand and automatically on first search. Semantic retrieval remains a future provider extension.
 
+## Codex control plane
+
+`services/codex-manager` implements `CodingAgentProvider` over the structured Codex App Server protocol. A supervised stdio JSON-line transport correlates requests, maps threads/turns/items/diffs into the stable JARVIS task model, and publishes provider-neutral events. Core task APIs and HUD projections depend only on shared contracts. See [codex-integration.md](./codex-integration.md).
+
 ## Task and worktree model
 
 Task states are explicit and versioned:

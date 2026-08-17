@@ -14,6 +14,7 @@ import { OpenAiRealtimeGateway } from "@jarvis/voice";
 import { OpenAiResearchProvider } from "@jarvis/research";
 import { PlaywrightBrowserProvider } from "@jarvis/browser";
 import { SqliteProjectRegistry, SqliteProjectSearch } from "@jarvis/projects";
+import { CodexAppServerProvider } from "@jarvis/codex-manager";
 import { createCoreServer } from "./server.js";
 import { startTelemetry } from "./telemetry.js";
 
@@ -47,6 +48,10 @@ const projectRegistry = new SqliteProjectRegistry({
   bus,
 });
 const projectSearch = new SqliteProjectSearch(database, bus);
+const codingAgentProvider = new CodexAppServerProvider({
+  database,
+  clientVersion: manifest.version,
+});
 const server = createCoreServer({
   config,
   environment,
@@ -59,6 +64,7 @@ const server = createCoreServer({
   browserProvider,
   projectRegistry,
   projectSearch,
+  codingAgentProvider,
 });
 
 await server.start();

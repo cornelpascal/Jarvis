@@ -50,6 +50,8 @@ Phase 9 project scanning is read-only and bounded by depth and directory limits.
 
 Phase 10 indexing excludes VCS/dependency/build directories, symbolic links, environment/credential/private-key filenames, binary content, and files over 1 MiB. Ripgrep is invoked as a fixed executable with an argument array, fixed-string query, ignore globs, output cap, and timeout; project text can never supply flags or a command line. Indexed project content remains project-origin data and cannot grant permissions.
 
+Phase 11 launches the fixed Codex executable with argument arrays and communicates only through structured App Server JSON. Threads are limited to the supplied workspace root with `workspace-write`; automatic approval escalation is disabled. Unexpected approval requests become visible and receive a transport denial until Phase 14 can issue action-bound permission receipts. The adapter cannot push or deploy through its task API.
+
 ## Assets
 
 Protected assets include:

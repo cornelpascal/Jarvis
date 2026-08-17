@@ -305,6 +305,43 @@ export function reduceHudEvent(
           `${event.payload.label}: ${event.payload.state}`,
         ),
       };
+    case "codex.task.created":
+      return {
+        ...state,
+        activity: appendActivity(state, `Task queued: ${event.payload.title}`),
+      };
+    case "codex.agent.started":
+      return {
+        ...state,
+        mode: "CODING",
+        modeReason: "Codex agent started",
+        activity: appendActivity(state, "Codex thread connected"),
+      };
+    case "codex.waiting_approval":
+      return {
+        ...state,
+        mode: "WAITING_APPROVAL",
+        modeReason: event.payload.method,
+      };
+    case "codex.diff.ready":
+      return {
+        ...state,
+        activity: appendActivity(state, "Codex diff ready"),
+      };
+    case "codex.completed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: "Codex task ready for review",
+        activity: appendActivity(state, "Codex task completed"),
+      };
+    case "codex.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(state, `Codex failed: ${event.payload.code}`),
+      };
     case "approval.requested":
       return {
         ...state,

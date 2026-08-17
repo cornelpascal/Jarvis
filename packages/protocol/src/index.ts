@@ -6,5 +6,6 @@ export * from "./orchestrator.js";
 export * from "./research.js";
 export * from "./references.js";
 export * from "./browser.js";
+export * from "./codex.js";
 export * from "./transport.js";
 export * from "./voice.js";

@@ -148,11 +148,23 @@ importers:
         specifier: ^1.62.1
         version: 1.62.1
 
+  services/codex-manager:
+    dependencies:
+      '@jarvis/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@jarvis/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+
   services/core:
     dependencies:
       '@jarvis/browser':
         specifier: workspace:*
         version: link:../browser
+      '@jarvis/codex-manager':
+        specifier: workspace:*
+        version: link:../codex-manager
       '@jarvis/config':
         specifier: workspace:*
         version: link:../../packages/config

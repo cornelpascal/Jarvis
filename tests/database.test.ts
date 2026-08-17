@@ -20,7 +20,7 @@ describe("database", () => {
       database.connection
         .prepare("SELECT COUNT(*) AS count FROM schema_migrations")
         .get(),
-    ).toEqual({ count: 2 });
+    ).toEqual({ count: 3 });
     expect(
       database.connection
         .prepare("SELECT type FROM event_log WHERE id = ?")

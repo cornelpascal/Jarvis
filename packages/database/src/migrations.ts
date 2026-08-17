@@ -118,4 +118,16 @@ export const migrations: readonly Migration[] = [
       "CREATE INDEX IF NOT EXISTS idx_project_document_symbols_project_name ON project_document_symbols(project_id, name)",
     ],
   },
+  {
+    version: 3,
+    name: "coding_task_provider_state",
+    statements: [
+      "ALTER TABLE tasks ADD COLUMN instruction TEXT",
+      "ALTER TABLE tasks ADD COLUMN working_directory TEXT",
+      "ALTER TABLE tasks ADD COLUMN provider TEXT",
+      "ALTER TABLE tasks ADD COLUMN thread_id TEXT",
+      "ALTER TABLE tasks ADD COLUMN turn_id TEXT",
+      "ALTER TABLE tasks ADD COLUMN error TEXT",
+    ],
+  },
 ];

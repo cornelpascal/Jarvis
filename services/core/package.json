@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@jarvis/config": "workspace:*",
+    "@jarvis/codex-manager": "workspace:*",
     "@jarvis/browser": "workspace:*",
     "@jarvis/database": "workspace:*",
     "@jarvis/event-bus": "workspace:*",

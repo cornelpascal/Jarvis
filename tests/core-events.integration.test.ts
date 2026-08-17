@@ -26,6 +26,7 @@ import type {
   ProjectSearchProvider,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
+import { MockCodingAgentProvider } from "../services/codex-manager/src/index.js";
 
 const voiceGateway: RealtimeCallGateway = {
   health: () =>
@@ -119,6 +120,7 @@ const projectSearch: ProjectSearchProvider = {
       matches: [],
     }),
 };
+const codingAgentProvider = new MockCodingAgentProvider();
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -202,6 +204,7 @@ describe("core event stream", () => {
       browserProvider,
       projectRegistry,
       projectSearch,
+      codingAgentProvider,
     });
     await server.start();
     await bus.publish(
@@ -257,6 +260,7 @@ describe("core event stream", () => {
       browserProvider,
       projectRegistry,
       projectSearch,
+      codingAgentProvider,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -287,6 +291,7 @@ describe("core event stream", () => {
       browserProvider,
       projectRegistry,
       projectSearch,
+      codingAgentProvider,
     });
     await server.start();
     const unauthorized = await fetch(
