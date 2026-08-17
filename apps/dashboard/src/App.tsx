@@ -72,6 +72,11 @@ export function App() {
   const submitText = useCallback(async (): Promise<void> => {
     const text = draft.trim();
     if (!text || submitting) return;
+    const activeTasks = Object.values(hud.agents).filter(
+      (agent) => !["FAILED", "CANCELLED"].includes(agent.state),
+    );
+    const activeTaskId =
+      activeTasks.length === 1 ? activeTasks[0]?.taskId : undefined;
     setSubmitting(true);
     try {
       const response = await coreRequest("/commands/route", {
@@ -83,6 +88,7 @@ export function App() {
           ...(hud.selectedProjectId
             ? { activeProjectId: hud.selectedProjectId }
             : {}),
+          ...(activeTaskId ? { activeTaskId } : {}),
           provenance: { origin: "user", trusted: true },
         }),
       });
@@ -98,7 +104,7 @@ export function App() {
     } finally {
       setSubmitting(false);
     }
-  }, [draft, hud.selectedProjectId, submitting]);
+  }, [draft, hud.agents, hud.selectedProjectId, submitting]);
 
   const resolveApproval = useCallback(
     async (approved: boolean): Promise<void> => {

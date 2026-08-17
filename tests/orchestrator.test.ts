@@ -34,6 +34,8 @@ describe("intent router", () => {
     ["Push it.", "git", { activeTaskId: "task-1" }],
     ["Deploy this project.", "deployment", { activeProjectId: "jarvis" }],
     ["Remember that I prefer concise replies.", "memory"],
+    ["Explain this diff.", "coding", { activeTaskId: "task-1" }],
+    ["Tell Codex 2 to reuse the existing helper.", "coding"],
   ];
 
   it.each(golden)("routes %s to %s", (text, expected, context) => {

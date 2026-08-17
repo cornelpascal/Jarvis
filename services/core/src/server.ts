@@ -78,6 +78,10 @@ import { IntentRouter } from "./orchestrator.js";
 import { BrowserAgentError } from "@jarvis/browser";
 import { ProjectRegistryError } from "@jarvis/projects";
 import { MemoryPolicyError } from "@jarvis/memory";
+import {
+  CodingConversationController,
+  CodingResponseBuffer,
+} from "./coding-conversation.js";
 
 const MAX_BUFFERED_BYTES = 512 * 1024;
 const SUBSCRIBE_TIMEOUT_MS = 5_000;
@@ -621,9 +625,12 @@ async function publishCodingAgentEvent(
   provider: CodingAgentProvider,
   verification: TaskVerificationProvider,
   permissions: PermissionBroker,
+  responses: CodingResponseBuffer,
   event: CodingAgentEvent,
 ): Promise<void> {
   const task = await provider.getStatus(event.taskId);
+  if (event.type === "message" && event.detail)
+    responses.append(task.id, event.detail);
   if (event.state === "QUEUED")
     await bus.publish(
       bus.create("codex.task.created", "codex.manager", {
@@ -669,6 +676,16 @@ async function publishCodingAgentEvent(
       }),
     );
   if (task.state === "READY_FOR_REVIEW" || task.state === "COMPLETED") {
+    const response = responses.take(task.id);
+    if (response)
+      await bus.publish(
+        bus.create("conversation.message.added", "codex.manager", {
+          messageId: randomUUID(),
+          role: "assistant",
+          content: response,
+          citations: [],
+        }),
+      );
     await bus.publish(
       bus.create("codex.completed", "codex.manager", {
         taskId: task.id,
@@ -696,7 +713,8 @@ async function publishCodingAgentEvent(
         );
       });
   }
-  if (event.type === "error")
+  if (event.type === "error") {
+    responses.clear(task.id);
     await bus.publish(
       bus.create("codex.failed", "codex.manager", {
         taskId: task.id,
@@ -705,6 +723,7 @@ async function publishCodingAgentEvent(
         message: event.detail ?? event.label,
       }),
     );
+  }
 }
 
 async function verifyTaskAndDisplay(
@@ -1017,6 +1036,13 @@ function decodeRawData(raw: RawData): string {
 export function createCoreServer(options: CoreServerOptions): CoreServer {
   const logger = new Logger("core-server");
   const router = new IntentRouter();
+  const codingConversation = new CodingConversationController({
+    database: options.database,
+    bus: options.bus,
+    provider: options.codingAgentProvider,
+    permissions: options.permissionBroker,
+  });
+  const codingResponses = new CodingResponseBuffer();
   const startedAt = new Date();
   const clients = new Map<WebSocket, ClientState>();
   const health = (): HealthSnapshot => ({
@@ -1278,6 +1304,27 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               routeRequest,
               options.permissionBroker,
             );
+          if (decision.route === "coding")
+            void codingConversation
+              .handle(routeRequest)
+              .catch(async (cause: unknown) => {
+                logger.log("warn", "coding.conversation.failed", {
+                  message:
+                    cause instanceof Error ? cause.message : "Unknown failure",
+                });
+                await options.bus.publish(
+                  options.bus.create(
+                    "conversation.message.added",
+                    "core.coding-conversation",
+                    {
+                      messageId: randomUUID(),
+                      role: "assistant",
+                      content: "I couldn't complete that coding review action.",
+                      citations: [],
+                    },
+                  ),
+                );
+              });
           if (decision.route === "git")
             void prepareGitRoute(
               options.bus,
@@ -2274,6 +2321,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         options.codingAgentProvider,
         options.taskVerification,
         options.permissionBroker,
+        codingResponses,
         event,
       ),
   );

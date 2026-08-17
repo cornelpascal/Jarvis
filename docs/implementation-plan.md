@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 22 — DONE**
-Next phase: **Phase 23 — NOT_STARTED**
+Current phase: **Phase 23 — DONE**
+Next phase: **V1 release validation — EXTERNAL GATES REMAIN**
 
 ## Status definitions
 
@@ -30,33 +30,33 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ## Phase overview
 
-| Phase                                | Status      | Outcome                                                                           |
-| ------------------------------------ | ----------- | --------------------------------------------------------------------------------- |
-| -1 — Open-source architecture audit  | DONE        | License/source audit and revised architecture/security/plan                       |
-| 0 — Repository bootstrap             | DONE        | Runnable monorepo, desktop shell, core health connection, config/database/logging |
-| 1 — Event bus                        | DONE        | Validated typed events, replayable history, dashboard subscription                |
-| 2 — Functional HUD                   | DONE        | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
-| 3 — Multi-monitor Reference Deck     | DONE        | Display discovery, persisted placement, second window/fallback                    |
-| 4 — Alt+Space + voice                | DONE        | Windows activation and provider-based spoken conversation                         |
-| 5 — Orchestrator/tool router         | DONE        | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
-| 6 — Web research                     | DONE        | Fresh structured research with sources and streamed events                        |
-| 7 — Smart References                 | DONE        | Independent visual-value evaluator and asynchronous rendering                     |
-| 8 — Browser Agent                    | DONE        | Isolated Playwright Chromium and typed browser actions                            |
-| 9 — Project Registry                 | DONE        | Configurable project discovery and metadata                                       |
-| 10 — Project index/retrieval         | DONE        | Deterministic layered local project search                                        |
-| 11 — Codex integration               | DONE        | Structured `CodingAgentProvider` with background task stream                      |
-| 12 — Worktree manager                | DONE        | One isolated worktree/branch per significant coding task                          |
-| 13 — Verification + diff UI          | DONE        | Configured checks and Reference Deck diff review                                  |
-| 14 — Permission broker               | DONE        | Complete mediation, risk policy, approvals, denial/injection tests                |
-| 15 — Git commit/push                 | DONE        | Explicit, resolved, audited commit/push flow; no auto-push                        |
-| 16 — Deployment system               | DONE        | Typed adapters, validated configured deploy, health events                        |
-| 17 — Deployment config auto-creation | DONE        | Missing-config analysis/proposal/approval/save workflow                           |
-| 18 — Windows system tools            | DONE        | Allow-listed least-privilege control and telemetry adapters                       |
-| 19 — Screenshot context              | DONE        | Explicit active-window/display capture as conversation context                    |
-| 20 — Memory                          | DONE        | Scoped explicit memories and relevant retrieval                                   |
-| 21 — Notifications/background work   | DONE        | Concurrent jobs, non-blocking conversation, rate-aware notifications              |
-| 22 — Wake word                       | DONE        | Local wake-word activation after voice stability                                  |
-| 23 — Windows packaging               | NOT_STARTED | Installer, startup, crash recovery, migration, release documentation              |
+| Phase                                | Status | Outcome                                                                           |
+| ------------------------------------ | ------ | --------------------------------------------------------------------------------- |
+| -1 — Open-source architecture audit  | DONE   | License/source audit and revised architecture/security/plan                       |
+| 0 — Repository bootstrap             | DONE   | Runnable monorepo, desktop shell, core health connection, config/database/logging |
+| 1 — Event bus                        | DONE   | Validated typed events, replayable history, dashboard subscription                |
+| 2 — Functional HUD                   | DONE   | Real-state JARVIS HUD, projects/agents/conversation/telemetry layout              |
+| 3 — Multi-monitor Reference Deck     | DONE   | Display discovery, persisted placement, second window/fallback                    |
+| 4 — Alt+Space + voice                | DONE   | Windows activation and provider-based spoken conversation                         |
+| 5 — Orchestrator/tool router         | DONE   | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
+| 6 — Web research                     | DONE   | Fresh structured research with sources and streamed events                        |
+| 7 — Smart References                 | DONE   | Independent visual-value evaluator and asynchronous rendering                     |
+| 8 — Browser Agent                    | DONE   | Isolated Playwright Chromium and typed browser actions                            |
+| 9 — Project Registry                 | DONE   | Configurable project discovery and metadata                                       |
+| 10 — Project index/retrieval         | DONE   | Deterministic layered local project search                                        |
+| 11 — Codex integration               | DONE   | Structured `CodingAgentProvider` with background task stream                      |
+| 12 — Worktree manager                | DONE   | One isolated worktree/branch per significant coding task                          |
+| 13 — Verification + diff UI          | DONE   | Configured checks and Reference Deck diff review                                  |
+| 14 — Permission broker               | DONE   | Complete mediation, risk policy, approvals, denial/injection tests                |
+| 15 — Git commit/push                 | DONE   | Explicit, resolved, audited commit/push flow; no auto-push                        |
+| 16 — Deployment system               | DONE   | Typed adapters, validated configured deploy, health events                        |
+| 17 — Deployment config auto-creation | DONE   | Missing-config analysis/proposal/approval/save workflow                           |
+| 18 — Windows system tools            | DONE   | Allow-listed least-privilege control and telemetry adapters                       |
+| 19 — Screenshot context              | DONE   | Explicit active-window/display capture as conversation context                    |
+| 20 — Memory                          | DONE   | Scoped explicit memories and relevant retrieval                                   |
+| 21 — Notifications/background work   | DONE   | Concurrent jobs, non-blocking conversation, durable notifications                 |
+| 22 — Wake word                       | DONE   | Local wake-word activation after voice stability                                  |
+| 23 — Windows packaging               | DONE   | Installer, startup, crash recovery, migration, release documentation              |
 
 ## Detailed phase plan
 
@@ -206,7 +206,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 - **Dependencies:** Phases 3, 10–12.
 - **Acceptance:** Available configured checks run and report accurate states; failed tests do not appear complete; diff summary/deck view works; user can explain/steer/revert scoped changes.
 - **Tests:** Fixture projects/package managers, absent commands, timeouts/cancellation, output bounds/redaction, diff parsing/binary/rename, steering loop, project → task → checks → diff E2E.
-- **Evidence:** 59 unit/integration tests pass. Disposable Git fixtures prove evidence-backed npm/pnpm/yarn script execution, skipped absent commands, failure propagation, bounded output, baseline diff generation, typed lifecycle events, and Reference Deck `CODE_DIFF` requests. Core exposes an authenticated explicit verification route and automatically schedules verification when a Codex task reaches review. Format, lint, typecheck, build, and native smoke pass.
+- **Evidence:** Disposable Git fixtures prove evidence-backed npm/pnpm/yarn script execution, skipped absent commands, failure propagation, bounded output, baseline diff generation, typed lifecycle events, and Reference Deck `CODE_DIFF` requests. Core exposes an authenticated explicit verification route and automatically schedules verification when a Codex task reaches review. Conversational diff review resolves active, ordinal, or named tasks; reopens the diff; permission-mediates steering/control; asks on ambiguity; and combines Codex response deltas into one conversation message. Format, lint, typecheck, build, and native smoke pass.
 - **Known limitations:** V1 executes only typed package-script forms discovered during project analysis; arbitrary shell command strings are intentionally rejected. Process cancellation is timeout-based pending task-wide cancellation propagation. Diff rendering is text-first; advanced side-by-side/binary/rename rendering is deferred.
 - **Known risks:** Destructive scripts, dependency side effects, long output, flaky tests, huge/binary diffs, command inference errors.
 

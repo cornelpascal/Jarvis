@@ -30,6 +30,7 @@ const features: RouteFeatures[] = [
     patterns: [
       /\b(fix|implement|refactor|add|remove|change|update)\b/i,
       /\b(bug|test|build|code|component|function|class|api)\b/i,
+      /\b(codex|coding agent|diff|revert|pause|resume|cancel)\b/i,
     ],
     contextBonus: ({ activeProjectId }) => (activeProjectId ? 0.4 : 0),
     reason: "code modification intent",

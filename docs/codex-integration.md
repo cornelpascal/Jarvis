@@ -36,6 +36,8 @@ Authenticated routes expose task creation, status, start/resume/pause/cancel, st
 
 The report records pass/fail/skip/timeout status for lint, typecheck, test, and build. A Git diff is generated against the worktree's recorded baseline revision and published both as `codex.diff.ready` and as a Reference Deck `CODE_DIFF` request. Failure remains visible and does not suppress the review artifact.
 
+Conversational review commands resolve an active task, a stable `Codex N` ordinal, or an unambiguous task title before acting. Requests to show a diff reopen the current artifact on the Reference Deck; explain/why/revert and explicit tell/ask commands steer the resolved Codex thread through `sendInstruction`. Pause, resume, and cancel use the same scoped resolver. Every action remains permission-mediated, ambiguous targets produce a conversation clarification, and streamed Codex response deltas are combined into one assistant message when the turn reaches review.
+
 ## Explicit Git publication
 
 `GitTaskManager` resolves only tasks in active owned worktrees that are ready for review or completed. Push requires the literal action word `push`; phrases such as “looks good,” “done,” or “finish it” never enter the workflow. Active task/project context, full task titles, and stable `Codex N` ordinals can resolve a target; multiple unresolved candidates return an ambiguity error.
