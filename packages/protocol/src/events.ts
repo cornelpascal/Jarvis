@@ -248,6 +248,35 @@ export const eventPayloadSchemas = {
     projectId: z.string().min(1),
     diff: z.string(),
   }),
+  "codex.command.started": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    name: z.enum(["lint", "typecheck", "test", "build"]),
+    command: z.string().min(1),
+  }),
+  "codex.command.completed": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    name: z.enum(["lint", "typecheck", "test", "build"]),
+    status: z.enum(["PASSED", "FAILED", "TIMED_OUT"]),
+    exitCode: z.int().optional(),
+    durationMs: z.int().nonnegative(),
+  }),
+  "codex.tests.started": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    checkCount: z.int().nonnegative(),
+  }),
+  "codex.tests.passed": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    checkCount: z.int().nonnegative(),
+  }),
+  "codex.tests.failed": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    failedChecks: z.array(z.string().min(1)),
+  }),
   "codex.completed": z.strictObject({
     taskId: z.string().min(1),
     projectId: z.string().min(1),

@@ -687,3 +687,4 @@ export class MockCodingAgentProvider implements CodingAgentProvider {
 }
 
 export { GitWorktreeManager, WorktreeError } from "./worktrees.js";
+export { TaskVerificationService } from "./verification.js";

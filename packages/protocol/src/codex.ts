@@ -89,3 +89,27 @@ export interface WorktreeManager {
   get(taskId: string): WorktreeRecord;
   cleanup(taskId: string): Promise<void>;
 }
+
+export const verificationCheckSchema = z.strictObject({
+  name: z.enum(["lint", "typecheck", "test", "build"]),
+  command: z.string().min(1),
+  status: z.enum(["PASSED", "FAILED", "SKIPPED", "TIMED_OUT"]),
+  exitCode: z.int().optional(),
+  durationMs: z.int().nonnegative(),
+  output: z.string(),
+});
+export type VerificationCheck = z.infer<typeof verificationCheckSchema>;
+
+export const verificationReportSchema = z.strictObject({
+  taskId: z.string().min(1),
+  projectId: z.string().min(1),
+  passed: z.boolean(),
+  checks: z.array(verificationCheckSchema),
+  diff: z.string(),
+  completedAt: z.iso.datetime(),
+});
+export type VerificationReport = z.infer<typeof verificationReportSchema>;
+
+export interface TaskVerificationProvider {
+  verify(taskId: string): Promise<VerificationReport>;
+}

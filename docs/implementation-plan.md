@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 12 — DONE**
-Next phase: **Phase 13 — NOT_STARTED**
+Current phase: **Phase 13 — DONE**
+Next phase: **Phase 14 — NOT_STARTED**
 
 ## Status definitions
 
@@ -46,7 +46,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 10 — Project index/retrieval         | DONE        | Deterministic layered local project search                                        |
 | 11 — Codex integration               | DONE        | Structured `CodingAgentProvider` with background task stream                      |
 | 12 — Worktree manager                | DONE        | One isolated worktree/branch per significant coding task                          |
-| 13 — Verification + diff UI          | NOT_STARTED | Configured checks and Reference Deck diff review                                  |
+| 13 — Verification + diff UI          | DONE        | Configured checks and Reference Deck diff review                                  |
 | 14 — Permission broker               | NOT_STARTED | Complete mediation, risk policy, approvals, denial/injection tests                |
 | 15 — Git commit/push                 | NOT_STARTED | Explicit, resolved, audited commit/push flow; no auto-push                        |
 | 16 — Deployment system               | NOT_STARTED | Typed adapters, validated configured deploy, health events                        |
@@ -201,11 +201,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 13 — Verification + diff UI
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Evidence-based project command config, isolated install/lint/typecheck/test/build runner, timeouts/cancellation, results, Git diff artifact, Reference Deck diff and conversational steering.
 - **Dependencies:** Phases 3, 10–12.
 - **Acceptance:** Available configured checks run and report accurate states; failed tests do not appear complete; diff summary/deck view works; user can explain/steer/revert scoped changes.
 - **Tests:** Fixture projects/package managers, absent commands, timeouts/cancellation, output bounds/redaction, diff parsing/binary/rename, steering loop, project → task → checks → diff E2E.
+- **Evidence:** 59 unit/integration tests pass. Disposable Git fixtures prove evidence-backed npm/pnpm/yarn script execution, skipped absent commands, failure propagation, bounded output, baseline diff generation, typed lifecycle events, and Reference Deck `CODE_DIFF` requests. Core exposes an authenticated explicit verification route and automatically schedules verification when a Codex task reaches review. Format, lint, typecheck, build, and native smoke pass.
+- **Known limitations:** V1 executes only typed package-script forms discovered during project analysis; arbitrary shell command strings are intentionally rejected. Process cancellation is timeout-based pending task-wide cancellation propagation. Diff rendering is text-first; advanced side-by-side/binary/rename rendering is deferred.
 - **Known risks:** Destructive scripts, dependency side effects, long output, flaky tests, huge/binary diffs, command inference errors.
 
 ### Phase 14 — Permission broker

@@ -39,6 +39,7 @@ import {
   type ResearchRequest,
   type RouteDecision,
   type RouteRequest,
+  type TaskVerificationProvider,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -69,6 +70,7 @@ export interface CoreServerOptions {
   projectSearch: ProjectSearchProvider;
   codingAgentProvider: CodingAgentProvider;
   worktreeManager: WorktreeManager;
+  taskVerification: TaskVerificationProvider;
 }
 
 export interface CoreServer {
@@ -499,6 +501,7 @@ async function executeProjectSearch(
 async function publishCodingAgentEvent(
   bus: LocalEventBus,
   provider: CodingAgentProvider,
+  verification: TaskVerificationProvider,
   event: CodingAgentEvent,
 ): Promise<void> {
   const task = await provider.getStatus(event.taskId);
@@ -546,7 +549,7 @@ async function publishCodingAgentEvent(
         diff: event.detail ?? "",
       }),
     );
-  if (task.state === "READY_FOR_REVIEW" || task.state === "COMPLETED")
+  if (task.state === "READY_FOR_REVIEW" || task.state === "COMPLETED") {
     await bus.publish(
       bus.create("codex.completed", "codex.manager", {
         taskId: task.id,
@@ -554,6 +557,21 @@ async function publishCodingAgentEvent(
         state: task.state,
       }),
     );
+    if (task.state === "READY_FOR_REVIEW")
+      void verifyTaskAndDisplay(bus, verification, task.id, task.title).catch(
+        async (cause: unknown) => {
+          await bus.publish(
+            bus.create("codex.failed", "core.verification", {
+              taskId: task.id,
+              projectId: task.projectId,
+              code: "VERIFICATION_FAILED",
+              message:
+                cause instanceof Error ? cause.message : "Verification failed",
+            }),
+          );
+        },
+      );
+  }
   if (event.type === "error")
     await bus.publish(
       bus.create("codex.failed", "codex.manager", {
@@ -563,6 +581,30 @@ async function publishCodingAgentEvent(
         message: event.detail ?? event.label,
       }),
     );
+}
+
+async function verifyTaskAndDisplay(
+  bus: LocalEventBus,
+  verification: TaskVerificationProvider,
+  taskId: string,
+  title: string,
+) {
+  const report = await verification.verify(taskId);
+  await bus.publish(
+    bus.create("reference.display.requested", "core.verification", {
+      mode: "CODE_DIFF",
+      title: `${title} — verification diff`,
+      items: [
+        {
+          id: `diff-${taskId}`,
+          type: "code_diff",
+          title: `${title} diff`,
+          content: report.diff || "No tracked changes were detected.",
+        },
+      ],
+    }),
+  );
+  return report;
 }
 
 function sendStreamMessage(
@@ -745,7 +787,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/projects/index" ||
         request.url === "/projects/search" ||
         request.url === "/codex/tasks" ||
-        /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff)$/.test(
+        /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
           request.url ?? "",
         ) ||
         request.url === "/projects/select" ||
@@ -923,7 +965,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
           }
         }
         if (
-          /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff)$/.test(
+          /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
             request.url ?? "",
           )
         ) {
@@ -964,6 +1006,20 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
                 decodedTaskId,
               ),
             });
+          if (action === "verify") {
+            const task =
+              await options.codingAgentProvider.getStatus(decodedTaskId);
+            return sendJson(
+              response,
+              200,
+              await verifyTaskAndDisplay(
+                options.bus,
+                options.taskVerification,
+                decodedTaskId,
+                task.title,
+              ),
+            );
+          }
           const input = codingInstructionRequestSchema.parse(
             JSON.parse(await readBody(request)) as unknown,
           );
@@ -1156,7 +1212,12 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
   });
   const unsubscribeCoding = options.codingAgentProvider.subscribeEvents(
     (event) =>
-      publishCodingAgentEvent(options.bus, options.codingAgentProvider, event),
+      publishCodingAgentEvent(
+        options.bus,
+        options.codingAgentProvider,
+        options.taskVerification,
+        event,
+      ),
   );
   return {
     url: `http://${options.config.network.bind_host}:${String(options.config.network.port)}`,

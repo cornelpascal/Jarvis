@@ -328,6 +328,44 @@ export function reduceHudEvent(
         ...state,
         activity: appendActivity(state, "Codex diff ready"),
       };
+    case "codex.command.started":
+      return {
+        ...state,
+        mode: "TESTING",
+        modeReason: `Running ${event.payload.name}`,
+        activity: appendActivity(
+          state,
+          `Verification: ${event.payload.command}`,
+        ),
+      };
+    case "codex.command.completed":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `${event.payload.name}: ${event.payload.status}`,
+        ),
+      };
+    case "codex.tests.started":
+      return {
+        ...state,
+        mode: "TESTING",
+        modeReason: `Running ${String(event.payload.checkCount)} project checks`,
+      };
+    case "codex.tests.passed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: "Project checks passed",
+        activity: appendActivity(state, "Verification passed"),
+      };
+    case "codex.tests.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: `Checks failed: ${event.payload.failedChecks.join(", ")}`,
+        activity: appendActivity(state, "Verification failed"),
+      };
     case "codex.completed":
       return {
         ...state,

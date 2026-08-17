@@ -360,6 +360,8 @@ Phase 10 implements the deterministic portion in `SqliteProjectSearch`: canonica
 
 `services/codex-manager` implements `CodingAgentProvider` over the structured Codex App Server protocol. A supervised stdio JSON-line transport correlates requests, maps threads/turns/items/diffs into the stable JARVIS task model, and publishes provider-neutral events. Core task APIs and HUD projections depend only on shared contracts. See [codex-integration.md](./codex-integration.md).
 
+Verification is a separate `TaskVerificationProvider`. It runs only repository-evidenced package scripts inside the isolated worktree, produces typed check results, and derives the review diff from the immutable worktree baseline. This keeps test execution and review artifacts independent from agent prose or transport-specific terminal output.
+
 ## Task and worktree model
 
 Task states are explicit and versioned:

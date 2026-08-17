@@ -28,7 +28,13 @@ The manager verifies the registered path is the repository root, refuses non-Git
 
 ## Core API
 
-Authenticated routes expose task creation, status, start/resume/pause/cancel, steering messages, and diff retrieval under `/codex/tasks`. Creation resolves the enabled project path in Core; callers cannot choose an arbitrary working directory.
+Authenticated routes expose task creation, status, start/resume/pause/cancel, steering messages, verification, and diff retrieval under `/codex/tasks`. Creation resolves the enabled project path in Core; callers cannot choose an arbitrary working directory.
+
+## Verification and review
+
+`TaskVerificationProvider` is separate from the coding-agent transport. It reads only project-analysis commands backed by repository evidence and accepts fixed npm, pnpm, or yarn package-script forms—never free-form shell strings. Checks run sequentially inside the task worktree with a bounded environment, output cap, timeout, and typed command/test events.
+
+The report records pass/fail/skip/timeout status for lint, typecheck, test, and build. A Git diff is generated against the worktree's recorded baseline revision and published both as `codex.diff.ready` and as a Reference Deck `CODE_DIFF` request. Failure remains visible and does not suppress the review artifact.
 
 ## Compatibility
 

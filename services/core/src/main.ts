@@ -17,6 +17,7 @@ import { SqliteProjectRegistry, SqliteProjectSearch } from "@jarvis/projects";
 import {
   CodexAppServerProvider,
   GitWorktreeManager,
+  TaskVerificationService,
 } from "@jarvis/codex-manager";
 import { createCoreServer } from "./server.js";
 import { startTelemetry } from "./telemetry.js";
@@ -59,6 +60,7 @@ const worktreeManager = new GitWorktreeManager({
   database,
   worktreesRoot: paths.worktrees,
 });
+const taskVerification = new TaskVerificationService({ database, bus });
 const server = createCoreServer({
   config,
   environment,
@@ -73,6 +75,7 @@ const server = createCoreServer({
   projectSearch,
   codingAgentProvider,
   worktreeManager,
+  taskVerification,
 });
 
 await server.start();

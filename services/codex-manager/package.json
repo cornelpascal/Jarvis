@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@jarvis/database": "workspace:*",
+    "@jarvis/event-bus": "workspace:*",
     "@jarvis/protocol": "workspace:*"
   }
 }

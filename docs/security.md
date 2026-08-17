@@ -52,6 +52,8 @@ Phase 10 indexing excludes VCS/dependency/build directories, symbolic links, env
 
 Phase 11 launches the fixed Codex executable with argument arrays and communicates only through structured App Server JSON. Threads are limited to the supplied workspace root with `workspace-write`; automatic approval escalation is disabled. Unexpected approval requests become visible and receive a transport denial until Phase 14 can issue action-bound permission receipts. The adapter cannot push or deploy through its task API.
 
+Phase 13 rejects inferred/free-form verification commands. Only evidence-backed npm, pnpm, and yarn package scripts are converted into executable-plus-argument arrays. They run in the isolated task worktree with shell expansion disabled, a minimal inherited environment, bounded output, and a timeout. Diffs are anchored to the recorded worktree baseline and remain review artifacts, not executable instructions.
+
 Phase 12 makes isolated Git worktrees mandatory for Core-created coding tasks. Source dirty state is observed but never reset or copied. Canonical containment and persisted ownership protect cleanup; dirty task worktrees are preserved. Repositories tracking `.env`, PEM, or private-key files are refused before checkout, and no non-Git fallback edits the registered source directory.
 
 ## Assets

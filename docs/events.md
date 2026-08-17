@@ -34,6 +34,8 @@ Current types through Phase 8:
 | `codex.task.created`, `codex.agent.started` | Coding task/thread lifecycle                | Durable              |
 | `codex.waiting_approval`                    | App Server request needs mediation          | Durable              |
 | `codex.diff.ready`                          | Latest structured turn diff                 | Durable              |
+| `codex.command.started/completed`           | Evidence-backed project check lifecycle     | Durable              |
+| `codex.tests.started/passed/failed`         | Aggregate verification state                | Durable              |
 | `codex.completed`, `codex.failed`           | Visible terminal/review outcome             | Durable              |
 | `git.worktree.created`                      | Isolated branch/path/baseline ownership     | Durable              |
 | `git.worktree.removed`                      | Safe managed-worktree cleanup               | Durable              |

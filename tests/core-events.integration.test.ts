@@ -25,6 +25,7 @@ import type {
   ProjectRegistryProvider,
   ProjectRegistrySnapshot,
   ProjectSearchProvider,
+  TaskVerificationProvider,
   WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
@@ -153,6 +154,17 @@ const worktreeManager: WorktreeManager = {
   },
   cleanup: () => Promise.resolve(),
 };
+const taskVerification: TaskVerificationProvider = {
+  verify: (taskId) =>
+    Promise.resolve({
+      taskId,
+      projectId: "project-http",
+      passed: true,
+      checks: [],
+      diff: "",
+      completedAt: new Date().toISOString(),
+    }),
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -238,6 +250,7 @@ describe("core event stream", () => {
       projectSearch,
       codingAgentProvider,
       worktreeManager,
+      taskVerification,
     });
     await server.start();
     await bus.publish(
@@ -295,6 +308,7 @@ describe("core event stream", () => {
       projectSearch,
       codingAgentProvider,
       worktreeManager,
+      taskVerification,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -327,6 +341,7 @@ describe("core event stream", () => {
       projectSearch,
       codingAgentProvider,
       worktreeManager,
+      taskVerification,
     });
     await server.start();
     const unauthorized = await fetch(

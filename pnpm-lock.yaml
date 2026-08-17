@@ -153,6 +153,9 @@ importers:
       '@jarvis/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@jarvis/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
       '@jarvis/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
