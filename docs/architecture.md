@@ -391,6 +391,8 @@ Dirty worktrees are preserved for review. Cleanup verifies the canonical target,
 
 Git status/diff/inspection and isolated task edits are normal workflow operations. Commit is configurable. Push is always a separate Level 3 action by default and requires an explicit command that resolves to one unambiguous task.
 
+`GitTaskManager` owns the publish state transition. It resolves only reviewable tasks with active worktree records, produces an approval preview bound to branch/HEAD/change digest, and publishes the exact owned branch to fixed `origin`. Core emits typed commit/push events; the dashboard can retry that typed operation with the one-use approval receipt.
+
 Deployment configurations are discriminated typed records. Adapters eventually include Docker Compose, Docker, PowerShell, SSH script, IIS, Node service, Windows service, CI/CD, and custom-approved execution.
 
 If configuration is missing, `deploy` creates an analysis job and proposal only. Evidence, unresolved values, validation results, health check, rollback strategy, and named secret references are presented. First execution happens only after validation and explicit action-bound approval.

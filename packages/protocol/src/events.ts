@@ -300,6 +300,37 @@ export const eventPayloadSchemas = {
     taskId: z.string().min(1),
     projectId: z.string().min(1),
   }),
+  "git.commit_requested": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    branch: z.string().min(1),
+  }),
+  "git.committed": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    branch: z.string().min(1),
+    revision: z.string().min(1),
+  }),
+  "git.push_requested": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    branch: z.string().min(1),
+    headRevision: z.string().min(1),
+    changesDigest: z.string().min(1),
+  }),
+  "git.pushed": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    branch: z.string().min(1),
+    revision: z.string().min(1),
+    remote: z.literal("origin"),
+  }),
+  "git.failed": z.strictObject({
+    taskId: z.string().min(1).optional(),
+    projectId: z.string().min(1).optional(),
+    code: z.string().min(1),
+    message: z.string().min(1),
+  }),
   "approval.requested": z.strictObject({
     approvalId: z.string().min(1),
     action: z.string().min(1),

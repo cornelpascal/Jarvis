@@ -97,10 +97,11 @@ export function App() {
   const resolveApproval = useCallback(
     async (approved: boolean): Promise<void> => {
       if (!hud.approval || resolvingApproval) return;
+      const approval = hud.approval;
       setResolvingApproval(true);
       try {
         const response = await coreRequest(
-          `/approvals/${encodeURIComponent(hud.approval.approvalId)}/resolve`,
+          `/approvals/${encodeURIComponent(approval.approvalId)}/resolve`,
           {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -111,6 +112,30 @@ export function App() {
           throw new Error(
             `Approval resolution failed (${String(response.status)})`,
           );
+        const resolution = (await response.json()) as {
+          receiptId?: string;
+        };
+        if (
+          approved &&
+          resolution.receiptId &&
+          approval.action === "git.push" &&
+          approval.resource.startsWith("task:")
+        ) {
+          const taskId = approval.resource.slice("task:".length);
+          const publish = await coreRequest(
+            `/git/tasks/${encodeURIComponent(taskId)}/push`,
+            {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                "x-jarvis-permission-receipt": resolution.receiptId,
+              },
+              body: "{}",
+            },
+          );
+          if (!publish.ok)
+            throw new Error(`Git push failed (${String(publish.status)})`);
+        }
         setError(undefined);
       } catch (cause) {
         setError(

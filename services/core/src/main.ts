@@ -18,6 +18,7 @@ import { SqliteProjectRegistry, SqliteProjectSearch } from "@jarvis/projects";
 import {
   CodexAppServerProvider,
   GitWorktreeManager,
+  GitTaskManager,
   TaskVerificationService,
 } from "@jarvis/codex-manager";
 import { createCoreServer } from "./server.js";
@@ -62,6 +63,7 @@ const worktreeManager = new GitWorktreeManager({
   worktreesRoot: paths.worktrees,
 });
 const taskVerification = new TaskVerificationService({ database, bus });
+const gitTaskManager = new GitTaskManager(database);
 const permissionBroker = new SqlitePermissionBroker({ database, bus });
 const server = createCoreServer({
   config,
@@ -79,6 +81,7 @@ const server = createCoreServer({
   worktreeManager,
   taskVerification,
   permissionBroker,
+  gitTaskManager,
 });
 
 await server.start();

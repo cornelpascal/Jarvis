@@ -393,6 +393,41 @@ export function reduceHudEvent(
         ...state,
         activity: appendActivity(state, "Task worktree removed"),
       };
+    case "git.commit_requested":
+      return {
+        ...state,
+        modeReason: `Preparing commit on ${event.payload.branch}`,
+        activity: appendActivity(state, "Git commit requested"),
+      };
+    case "git.committed":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `Committed ${event.payload.revision.slice(0, 8)}`,
+        ),
+      };
+    case "git.push_requested":
+      return {
+        ...state,
+        mode: "WAITING_APPROVAL",
+        modeReason: `Push ${event.payload.branch}`,
+        activity: appendActivity(state, "Git push requested"),
+      };
+    case "git.pushed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: `Pushed ${event.payload.branch}`,
+        activity: appendActivity(state, "Git branch pushed"),
+      };
+    case "git.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(state, `Git failed: ${event.payload.code}`),
+      };
     case "approval.requested":
       return {
         ...state,

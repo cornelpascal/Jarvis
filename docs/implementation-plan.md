@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 14 — DONE**
-Next phase: **Phase 15 — NOT_STARTED**
+Current phase: **Phase 15 — DONE**
+Next phase: **Phase 16 — NOT_STARTED**
 
 ## Status definitions
 
@@ -48,7 +48,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 12 — Worktree manager                | DONE        | One isolated worktree/branch per significant coding task                          |
 | 13 — Verification + diff UI          | DONE        | Configured checks and Reference Deck diff review                                  |
 | 14 — Permission broker               | DONE        | Complete mediation, risk policy, approvals, denial/injection tests                |
-| 15 — Git commit/push                 | NOT_STARTED | Explicit, resolved, audited commit/push flow; no auto-push                        |
+| 15 — Git commit/push                 | DONE        | Explicit, resolved, audited commit/push flow; no auto-push                        |
 | 16 — Deployment system               | NOT_STARTED | Typed adapters, validated configured deploy, health events                        |
 | 17 — Deployment config auto-creation | NOT_STARTED | Missing-config analysis/proposal/approval/save workflow                           |
 | 18 — Windows system tools            | NOT_STARTED | Allow-listed least-privilege control and telemetry adapters                       |
@@ -223,11 +223,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 15 — Git commit / push
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Task target resolution, commit policy/preview, explicit push command, remote/refspec validation, Level 3 approval/audit, result events; no automatic push.
 - **Dependencies:** Phases 12–14.
 - **Acceptance:** “Push it” resolves the unique current task and pushes after approval; named task works; ambiguous target asks; “looks good/done/finish it” never pushes; rejection leaves remote unchanged.
 - **Tests:** Temporary bare remote integration, ambiguity fixtures, receipt target binding, remote changed after preview, push rejection/auth failure, no-auto-push regression, audit/log redaction.
+- **Evidence:** 66 unit/integration tests pass. Disposable repositories prove isolated-branch commit and push to a bare `origin`, explicit-wording enforcement, active/named/Codex-ordinal resolution, ambiguity rejection, and refusal of secret-bearing changes before staging. The Level 3 permission digest binds task, branch, pre-push revision, and worktree change digest; the dashboard retries only the typed Git endpoint with the one-use receipt. Push uses a fixed `origin`, exact owned `jarvis/*` branch, argument arrays, no force/tags, and non-interactive credentials.
+- **Known limitations:** The initial implementation publishes only to the fixed `origin` remote and creates a neutral JARVIS task commit when approved changes remain. Protected-branch/credential failures are reported without retry loops. Commit signing and configurable commit-message templates are deferred.
 - **Known risks:** Credentials, protected branches, force/refspec mistakes, race with remote changes, user ambiguity.
 
 ### Phase 16 — Deployment system

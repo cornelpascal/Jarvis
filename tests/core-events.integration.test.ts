@@ -27,6 +27,7 @@ import type {
   ProjectRegistrySnapshot,
   ProjectSearchProvider,
   TaskVerificationProvider,
+  GitTaskProvider,
   WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
@@ -166,6 +167,29 @@ const taskVerification: TaskVerificationProvider = {
       completedAt: new Date().toISOString(),
     }),
 };
+const gitTarget = {
+  taskId: "task-git",
+  projectId: "project-http",
+  title: "Git fixture",
+  worktreePath: "C:\\managed-worktrees\\task-git",
+  branch: "jarvis/task-git",
+  headRevision: "a".repeat(40),
+  changesDigest: "b".repeat(64),
+  hasChanges: false,
+} as const;
+const gitTaskManager: GitTaskProvider = {
+  resolve: () => Promise.resolve(gitTarget),
+  preview: () => Promise.resolve(gitTarget),
+  publish: () =>
+    Promise.resolve({
+      taskId: gitTarget.taskId,
+      projectId: gitTarget.projectId,
+      branch: gitTarget.branch,
+      revision: gitTarget.headRevision,
+      remote: "origin",
+      committed: false,
+    }),
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -253,6 +277,7 @@ describe("core event stream", () => {
       worktreeManager,
       taskVerification,
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
+      gitTaskManager,
     });
     await server.start();
     await bus.publish(
@@ -312,6 +337,7 @@ describe("core event stream", () => {
       worktreeManager,
       taskVerification,
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
+      gitTaskManager,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -359,6 +385,7 @@ describe("core event stream", () => {
       worktreeManager,
       taskVerification,
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
+      gitTaskManager,
     });
     await server.start();
     const unauthorized = await fetch(
@@ -576,5 +603,70 @@ describe("core event stream", () => {
       state: "QUEUED",
     });
     expect(createdTask.workingDirectory).toContain("managed-worktrees");
+
+    const gitApproval = new Promise<
+      Extract<KnownJarvisEvent, { type: "approval.requested" }>
+    >((resolve) => {
+      const unsubscribe = bus.subscribe((event) => {
+        if (
+          event.type === "approval.requested" &&
+          event.payload.action === "git.push"
+        ) {
+          unsubscribe();
+          resolve(event);
+        }
+      });
+    });
+    const pushRoute = await fetch(
+      `http://127.0.0.1:${String(port)}/commands/route`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          origin: "http://127.0.0.1:1420",
+        },
+        body: JSON.stringify({
+          requestId: "009b9a3d-858a-43ba-af09-fbf8fa3e9a38",
+          text: "Push it",
+          activeTaskId: "task-git",
+          provenance: { origin: "user", trusted: true },
+        }),
+      },
+    );
+    expect(pushRoute.status).toBe(200);
+    const approvalEvent = await gitApproval;
+    const gitResolution = await fetch(
+      `http://127.0.0.1:${String(port)}/approvals/${approvalEvent.payload.approvalId}/resolve`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          origin: "http://127.0.0.1:1420",
+        },
+        body: JSON.stringify({ approved: true }),
+      },
+    );
+    const gitReceipt = (await gitResolution.json()) as { receiptId: string };
+    const pushed = await fetch(
+      `http://127.0.0.1:${String(port)}/git/tasks/task-git/push`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          "x-jarvis-permission-receipt": gitReceipt.receiptId,
+          origin: "http://127.0.0.1:1420",
+        },
+        body: "{}",
+      },
+    );
+    expect(pushed.status).toBe(200);
+    await expect(pushed.json()).resolves.toMatchObject({
+      taskId: "task-git",
+      branch: "jarvis/task-git",
+      remote: "origin",
+    });
   });
 });

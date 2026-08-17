@@ -46,6 +46,8 @@ import {
   type RouteDecision,
   type RouteRequest,
   type TaskVerificationProvider,
+  type GitTaskProvider,
+  type GitTaskTarget,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -78,6 +80,7 @@ export interface CoreServerOptions {
   worktreeManager: WorktreeManager;
   taskVerification: TaskVerificationProvider;
   permissionBroker: PermissionBroker;
+  gitTaskManager: GitTaskProvider;
 }
 
 export interface CoreServer {
@@ -724,6 +727,114 @@ async function verifyTaskAndDisplay(
   return report;
 }
 
+function gitPushPermission(target: GitTaskTarget): PermissionRequest {
+  return permissionRequest({
+    action: "git.push",
+    resource: `task:${target.taskId}`,
+    projectId: target.projectId,
+    reason: `Push ${target.branch} to origin after review`,
+    arguments: {
+      taskId: target.taskId,
+      branch: target.branch,
+      headRevision: target.headRevision,
+      changesDigest: target.changesDigest,
+    },
+  });
+}
+
+async function publishGitTarget(
+  bus: LocalEventBus,
+  provider: GitTaskProvider,
+  target: GitTaskTarget,
+) {
+  if (target.hasChanges)
+    await bus.publish(
+      bus.create("git.commit_requested", "core.git", {
+        taskId: target.taskId,
+        projectId: target.projectId,
+        branch: target.branch,
+      }),
+    );
+  const result = await provider.publish(target.taskId, target);
+  if (result.committed)
+    await bus.publish(
+      bus.create("git.committed", "core.git", {
+        taskId: result.taskId,
+        projectId: result.projectId,
+        branch: result.branch,
+        revision: result.revision,
+      }),
+    );
+  await bus.publish(
+    bus.create("git.pushed", "core.git", {
+      taskId: result.taskId,
+      projectId: result.projectId,
+      branch: result.branch,
+      revision: result.revision,
+      remote: result.remote,
+    }),
+  );
+  return result;
+}
+
+async function prepareGitRoute(
+  bus: LocalEventBus,
+  provider: GitTaskProvider,
+  permissions: PermissionBroker,
+  request: RouteRequest,
+): Promise<void> {
+  try {
+    const target = await provider.resolve({
+      text: request.text,
+      ...(request.activeTaskId ? { activeTaskId: request.activeTaskId } : {}),
+      ...(request.activeProjectId
+        ? { activeProjectId: request.activeProjectId }
+        : {}),
+    });
+    await bus.publish(
+      bus.create("git.push_requested", "core.git", {
+        taskId: target.taskId,
+        projectId: target.projectId,
+        branch: target.branch,
+        headRevision: target.headRevision,
+        changesDigest: target.changesDigest,
+      }),
+    );
+    const permission = await permissions.authorize(gitPushPermission(target));
+    const content =
+      permission.state === "PENDING"
+        ? `Push ${target.branch} is ready and requires approval.`
+        : permission.state === "DENIED"
+          ? permission.reason
+          : `Push ${target.branch} was approved by policy.`;
+    await bus.publish(
+      bus.create("conversation.message.added", "core.git", {
+        messageId: randomUUID(),
+        role: "assistant",
+        content,
+        citations: [],
+      }),
+    );
+  } catch (cause) {
+    const message =
+      cause instanceof Error ? cause.message : "Unable to resolve Git task";
+    await bus.publish(
+      bus.create("git.failed", "core.git", {
+        code: "GIT_TARGET_UNRESOLVED",
+        message,
+      }),
+    );
+    await bus.publish(
+      bus.create("conversation.message.added", "core.git", {
+        messageId: randomUUID(),
+        role: "assistant",
+        content: message,
+        citations: [],
+      }),
+    );
+  }
+}
+
 function sendStreamMessage(
   client: WebSocket,
   message: EventStreamServerMessage,
@@ -920,6 +1031,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/projects/index" ||
         request.url === "/projects/search" ||
         request.url === "/codex/tasks" ||
+        /^\/git\/tasks\/[^/]+\/push$/.test(request.url ?? "") ||
         /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
           request.url ?? "",
@@ -994,6 +1106,13 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               options.projectSearch,
               routeRequest,
               options.permissionBroker,
+            );
+          if (decision.route === "git")
+            void prepareGitRoute(
+              options.bus,
+              options.gitTaskManager,
+              options.permissionBroker,
+              routeRequest,
             );
           return sendJson(response, 200, decision);
         }
@@ -1219,6 +1338,59 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               .cleanup(taskId)
               .catch(() => undefined);
             throw cause;
+          }
+        }
+        if (/^\/git\/tasks\/[^/]+\/push$/.test(request.url ?? "")) {
+          await readBody(request);
+          const taskId = request.url?.split("/").at(3);
+          if (!taskId) throw new Error("Git task identifier is missing");
+          const target = await options.gitTaskManager.preview(
+            decodeURIComponent(taskId),
+          );
+          await options.bus.publish(
+            options.bus.create("git.push_requested", "core.git", {
+              taskId: target.taskId,
+              projectId: target.projectId,
+              branch: target.branch,
+              headRevision: target.headRevision,
+              changesDigest: target.changesDigest,
+            }),
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              gitPushPermission(target),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          try {
+            return sendJson(
+              response,
+              200,
+              await publishGitTarget(
+                options.bus,
+                options.gitTaskManager,
+                target,
+              ),
+            );
+          } catch (cause) {
+            const message =
+              cause instanceof Error ? cause.message : "Git push failed";
+            await options.bus.publish(
+              options.bus.create("git.failed", "core.git", {
+                taskId: target.taskId,
+                projectId: target.projectId,
+                code: "GIT_PUSH_FAILED",
+                message,
+              }),
+            );
+            return sendJson(response, 409, {
+              code: "GIT_PUSH_FAILED",
+              message,
+              retryable: true,
+            });
           }
         }
         if (

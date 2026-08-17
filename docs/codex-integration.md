@@ -36,6 +36,12 @@ Authenticated routes expose task creation, status, start/resume/pause/cancel, st
 
 The report records pass/fail/skip/timeout status for lint, typecheck, test, and build. A Git diff is generated against the worktree's recorded baseline revision and published both as `codex.diff.ready` and as a Reference Deck `CODE_DIFF` request. Failure remains visible and does not suppress the review artifact.
 
+## Explicit Git publication
+
+`GitTaskManager` resolves only tasks in active owned worktrees that are ready for review or completed. Push requires the literal action word `push`; phrases such as “looks good,” “done,” or “finish it” never enter the workflow. Active task/project context, full task titles, and stable `Codex N` ordinals can resolve a target; multiple unresolved candidates return an ambiguity error.
+
+The preview verifies the checked-out `jarvis/*` branch, captures HEAD and a digest of current changes, and refuses `.env`/private-key paths. The Level 3 approval binds those values. On the exact approved retry, JARVIS rechecks the preview, optionally creates a neutral task commit, and pushes only that branch to fixed remote `origin` using `--set-upstream` without force or tags.
+
 ## Compatibility
 
 App Server is experimental. The adapter reports CLI availability/version and treats missing IDs, process exits, timeouts, malformed lines, and JSON-RPC errors explicitly. Recorded fake-server tests protect mapping, and a local smoke test initializes the installed App Server.
