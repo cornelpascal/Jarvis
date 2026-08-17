@@ -35,6 +35,8 @@ Current types through Phase 8:
 | `codex.waiting_approval`                    | App Server request needs mediation          | Durable              |
 | `codex.diff.ready`                          | Latest structured turn diff                 | Durable              |
 | `codex.completed`, `codex.failed`           | Visible terminal/review outcome             | Durable              |
+| `git.worktree.created`                      | Isolated branch/path/baseline ownership     | Durable              |
+| `git.worktree.removed`                      | Safe managed-worktree cleanup               | Durable              |
 | `approval.requested`                        | Approval-surface projection contract        | Durable when emitted |
 | `reference.display.requested`               | Typed Reference Deck mode and items         | Durable when emitted |
 | `voice.connected`, `voice.listening`        | Realtime voice connection/readiness         | Transient            |

@@ -377,6 +377,8 @@ Each significant Git coding task owns:
 - verification plan/evidence and diff artifact;
 - zero implicit `.env` or credential copies.
 
+Phase 12 implements this invariant in `GitWorktreeManager`. Core creates the worktree before the coding task and passes only the managed path to `CodingAgentProvider`. The manager uses Git argument arrays, stable database ownership, canonical containment, unique task branches, and clean-only removal. Non-Git projects are reported as unsupported for coding isolation rather than edited in place.
+
 Dirty worktrees are preserved for review. Cleanup verifies the canonical target, task ownership, Git registration, and absence of unreviewed changes before removal.
 
 ## Git and deployment

@@ -130,4 +130,17 @@ export const migrations: readonly Migration[] = [
       "ALTER TABLE tasks ADD COLUMN error TEXT",
     ],
   },
+  {
+    version: 4,
+    name: "worktree_ownership",
+    statements: [
+      `CREATE TABLE IF NOT EXISTS worktrees (
+        task_id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        source_path TEXT NOT NULL, path TEXT NOT NULL UNIQUE, branch TEXT NOT NULL UNIQUE,
+        baseline_revision TEXT NOT NULL, source_dirty INTEGER NOT NULL,
+        state TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      )`,
+      "CREATE INDEX IF NOT EXISTS idx_worktrees_project ON worktrees(project_id)",
+    ],
+  },
 ];

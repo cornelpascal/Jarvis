@@ -14,7 +14,10 @@ import { OpenAiRealtimeGateway } from "@jarvis/voice";
 import { OpenAiResearchProvider } from "@jarvis/research";
 import { PlaywrightBrowserProvider } from "@jarvis/browser";
 import { SqliteProjectRegistry, SqliteProjectSearch } from "@jarvis/projects";
-import { CodexAppServerProvider } from "@jarvis/codex-manager";
+import {
+  CodexAppServerProvider,
+  GitWorktreeManager,
+} from "@jarvis/codex-manager";
 import { createCoreServer } from "./server.js";
 import { startTelemetry } from "./telemetry.js";
 
@@ -52,6 +55,10 @@ const codingAgentProvider = new CodexAppServerProvider({
   database,
   clientVersion: manifest.version,
 });
+const worktreeManager = new GitWorktreeManager({
+  database,
+  worktreesRoot: paths.worktrees,
+});
 const server = createCoreServer({
   config,
   environment,
@@ -65,6 +72,7 @@ const server = createCoreServer({
   projectRegistry,
   projectSearch,
   codingAgentProvider,
+  worktreeManager,
 });
 
 await server.start();

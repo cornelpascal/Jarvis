@@ -36,6 +36,7 @@ export const codingTaskSchema = z.strictObject({
 export type CodingTask = z.infer<typeof codingTaskSchema>;
 
 export const codingTaskCreateSchema = z.strictObject({
+  taskId: z.string().min(1).optional(),
   projectId: z.string().min(1),
   title: z.string().trim().min(1).max(300),
   instruction: z.string().trim().min(1).max(50_000),
@@ -45,6 +46,7 @@ export type CodingTaskCreate = z.infer<typeof codingTaskCreateSchema>;
 
 export const codingTaskRequestSchema = codingTaskCreateSchema.omit({
   workingDirectory: true,
+  taskId: true,
 });
 export const codingInstructionRequestSchema = z.strictObject({
   instruction: z.string().trim().min(1).max(50_000),
@@ -64,3 +66,26 @@ export type CodingAgentEvent = z.infer<typeof codingAgentEventSchema>;
 export type CodingAgentEventListener = (
   event: CodingAgentEvent,
 ) => void | Promise<void>;
+
+export const worktreeRecordSchema = z.strictObject({
+  taskId: z.string().min(1),
+  projectId: z.string().min(1),
+  sourcePath: z.string().min(1),
+  path: z.string().min(1),
+  branch: z.string().min(1),
+  baselineRevision: z.string().min(1),
+  sourceDirty: z.boolean(),
+  createdAt: z.iso.datetime(),
+});
+export type WorktreeRecord = z.infer<typeof worktreeRecordSchema>;
+
+export interface WorktreeManager {
+  create(input: {
+    taskId: string;
+    projectId: string;
+    projectPath: string;
+    title: string;
+  }): Promise<WorktreeRecord>;
+  get(taskId: string): WorktreeRecord;
+  cleanup(taskId: string): Promise<void>;
+}

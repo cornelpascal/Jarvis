@@ -10,6 +10,7 @@ import {
   EVENT_SCHEMA_VERSION,
   PROTOCOL_VERSION,
   eventStreamServerMessageSchema,
+  codingTaskSchema,
   type EventStreamServerMessage,
   type KnownJarvisEvent,
 } from "../packages/protocol/src/index.js";
@@ -24,6 +25,7 @@ import type {
   ProjectRegistryProvider,
   ProjectRegistrySnapshot,
   ProjectSearchProvider,
+  WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
 import { MockCodingAgentProvider } from "../services/codex-manager/src/index.js";
@@ -90,7 +92,20 @@ const browserProvider: BrowserProvider = {
 
 const emptyProjectSnapshot: ProjectRegistrySnapshot = {
   roots: [],
-  projects: [],
+  projects: [
+    {
+      id: "project-http",
+      name: "HTTP Fixture",
+      path: "C:\\fixture-repository",
+      enabled: true,
+      signals: [".git"],
+      stack: ["node"],
+      git: { enabled: true, defaultBranch: "main" },
+      commands: {},
+      createdAt: "2026-08-17T00:00:00.000Z",
+      updatedAt: "2026-08-17T00:00:00.000Z",
+    },
+  ],
 };
 const projectRegistry: ProjectRegistryProvider = {
   initialize: () => Promise.resolve(emptyProjectSnapshot),
@@ -121,6 +136,23 @@ const projectSearch: ProjectSearchProvider = {
     }),
 };
 const codingAgentProvider = new MockCodingAgentProvider();
+const worktreeManager: WorktreeManager = {
+  create: (input) =>
+    Promise.resolve({
+      taskId: input.taskId,
+      projectId: input.projectId,
+      sourcePath: input.projectPath,
+      path: `C:\\managed-worktrees\\${input.taskId}`,
+      branch: `jarvis/${input.taskId}`,
+      baselineRevision: "test-revision",
+      sourceDirty: false,
+      createdAt: new Date().toISOString(),
+    }),
+  get: () => {
+    throw new Error("No worktree in this test");
+  },
+  cleanup: () => Promise.resolve(),
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -205,6 +237,7 @@ describe("core event stream", () => {
       projectRegistry,
       projectSearch,
       codingAgentProvider,
+      worktreeManager,
     });
     await server.start();
     await bus.publish(
@@ -261,6 +294,7 @@ describe("core event stream", () => {
       projectRegistry,
       projectSearch,
       codingAgentProvider,
+      worktreeManager,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -292,6 +326,7 @@ describe("core event stream", () => {
       projectRegistry,
       projectSearch,
       codingAgentProvider,
+      worktreeManager,
     });
     await server.start();
     const unauthorized = await fetch(
@@ -422,5 +457,30 @@ describe("core event stream", () => {
       type: "browser.action.completed",
       payload: { action: "open_url", tabId: "tab-test" },
     });
+
+    const codingTask = await fetch(
+      `http://127.0.0.1:${String(port)}/codex/tasks`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          origin: "http://127.0.0.1:1420",
+        },
+        body: JSON.stringify({
+          projectId: "project-http",
+          title: "Isolated task",
+          instruction: "Update the fixture",
+        }),
+      },
+    );
+    expect(codingTask.status).toBe(201);
+    const createdTask = codingTaskSchema.parse(await codingTask.json());
+    expect(createdTask).toMatchObject({
+      projectId: "project-http",
+      title: "Isolated task",
+      state: "QUEUED",
+    });
+    expect(createdTask.workingDirectory).toContain("managed-worktrees");
   });
 });

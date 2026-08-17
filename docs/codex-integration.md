@@ -20,6 +20,12 @@ Threads use the supplied project/worktree as both `cwd` and runtime workspace ro
 
 The provider instruction forbids push, deployment, and secret access. Phase 12 enforces isolated worktrees for production task starts.
 
+## Worktree isolation
+
+Core task creation generates the task identity first and requires `GitWorktreeManager` to prepare `%LOCALAPPDATA%\Jarvis\worktrees\<project>\<task>` before the provider sees the task. The worktree uses a unique `jarvis/<task>-<slug>` branch at the recorded source `HEAD`; uncommitted source changes stay in the source checkout.
+
+The manager verifies the registered path is the repository root, refuses non-Git projects and tracked `.env`/private-key files, canonicalizes every managed target beneath the configured storage root, and persists ownership/baseline/branch metadata. Cleanup refuses dirty worktrees and delegates removal to `git worktree remove`; it never recursively deletes an unverified path.
+
 ## Core API
 
 Authenticated routes expose task creation, status, start/resume/pause/cancel, steering messages, and diff retrieval under `/codex/tasks`. Creation resolves the enabled project path in Core; callers cannot choose an arbitrary working directory.

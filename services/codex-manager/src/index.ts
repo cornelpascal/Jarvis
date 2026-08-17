@@ -262,9 +262,10 @@ export class CodexAppServerProvider implements CodingAgentProvider {
 
   async createTask(input: CodingTaskCreate): Promise<CodingTask> {
     const now = new Date().toISOString();
+    const { taskId, ...taskInput } = input;
     const task = codingTaskSchema.parse({
-      id: randomUUID(),
-      ...input,
+      id: taskId ?? randomUUID(),
+      ...taskInput,
       state: "QUEUED",
       provider: "codex-app-server",
       createdAt: now,
@@ -609,9 +610,10 @@ export class MockCodingAgentProvider implements CodingAgentProvider {
   }
   async createTask(input: CodingTaskCreate): Promise<CodingTask> {
     const now = new Date().toISOString();
+    const { taskId, ...taskInput } = input;
     const task = codingTaskSchema.parse({
-      id: randomUUID(),
-      ...input,
+      id: taskId ?? randomUUID(),
+      ...taskInput,
       state: "QUEUED",
       provider: "mock",
       createdAt: now,
@@ -683,3 +685,5 @@ export class MockCodingAgentProvider implements CodingAgentProvider {
     );
   }
 }
+
+export { GitWorktreeManager, WorktreeError } from "./worktrees.js";

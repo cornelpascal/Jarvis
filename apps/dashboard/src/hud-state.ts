@@ -342,6 +342,19 @@ export function reduceHudEvent(
         modeReason: event.payload.message,
         activity: appendActivity(state, `Codex failed: ${event.payload.code}`),
       };
+    case "git.worktree.created":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `Worktree ready: ${event.payload.branch}`,
+        ),
+      };
+    case "git.worktree.removed":
+      return {
+        ...state,
+        activity: appendActivity(state, "Task worktree removed"),
+      };
     case "approval.requested":
       return {
         ...state,

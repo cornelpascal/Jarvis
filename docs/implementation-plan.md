@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 11 — DONE**
-Next phase: **Phase 12 — NOT_STARTED**
+Current phase: **Phase 12 — DONE**
+Next phase: **Phase 13 — NOT_STARTED**
 
 ## Status definitions
 
@@ -45,7 +45,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 9 — Project Registry                 | DONE        | Configurable project discovery and metadata                                       |
 | 10 — Project index/retrieval         | DONE        | Deterministic layered local project search                                        |
 | 11 — Codex integration               | DONE        | Structured `CodingAgentProvider` with background task stream                      |
-| 12 — Worktree manager                | NOT_STARTED | One isolated worktree/branch per significant coding task                          |
+| 12 — Worktree manager                | DONE        | One isolated worktree/branch per significant coding task                          |
 | 13 — Verification + diff UI          | NOT_STARTED | Configured checks and Reference Deck diff review                                  |
 | 14 — Permission broker               | NOT_STARTED | Complete mediation, risk policy, approvals, denial/injection tests                |
 | 15 — Git commit/push                 | NOT_STARTED | Explicit, resolved, audited commit/push flow; no auto-push                        |
@@ -191,12 +191,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 12 — Worktree manager
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Branch/worktree creation, `%LOCALAPPDATA%` layout, canonical ownership locks, baseline revision, dirty-state preservation, safe cleanup, non-Git fallback policy.
 - **Dependencies:** Phases 9 and 11; Git executable.
 - **Acceptance:** Every significant Git coding task uses its own branch/worktree; parallel tasks cannot share a writable checkout; no `.env` copying; stale/dirty state is reported and preserved.
 - **Tests:** Temporary repo integration, concurrent creation, duplicate project names, junction/path escape, dirty reuse, stale Git metadata, safe cleanup/denial, non-Git behavior.
-- **Known risks:** Antivirus/file locks, long paths, submodules/LFS, nested worktrees, disk growth, unsafe cleanup.
+- **Evidence:** 57 unit/integration tests pass. Disposable Git repositories prove unique parallel branches/paths, dirty-source preservation, untracked-file isolation, current-branch correctness, tracked-secret/non-Git refusal, dirty-worktree preservation, and clean Git-mediated cleanup. Core task creation requires the worktree manager and passes its managed path to Codex. Format, lint, typecheck, build, and native smoke pass.
+- **Known limitations:** Submodules, Git LFS hydration, sparse checkouts, antivirus locks, and long-path policy need packaging-environment validation. Branch deletion is intentionally separate from worktree removal. Non-Git coding tasks are blocked instead of using a less-isolated fallback.
 
 ### Phase 13 — Verification + diff UI
 

@@ -259,6 +259,18 @@ export const eventPayloadSchemas = {
     code: z.string().min(1),
     message: z.string().min(1),
   }),
+  "git.worktree.created": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+    path: z.string().min(1),
+    branch: z.string().min(1),
+    baselineRevision: z.string().min(1),
+    sourceDirty: z.boolean(),
+  }),
+  "git.worktree.removed": z.strictObject({
+    taskId: z.string().min(1),
+    projectId: z.string().min(1),
+  }),
   "approval.requested": z.strictObject({
     approvalId: z.string().min(1),
     action: z.string().min(1),

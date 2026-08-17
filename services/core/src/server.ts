@@ -39,6 +39,7 @@ import {
   type ResearchRequest,
   type RouteDecision,
   type RouteRequest,
+  type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
 import { RealtimeGatewayError, type RealtimeCallGateway } from "@jarvis/voice";
@@ -67,6 +68,7 @@ export interface CoreServerOptions {
   projectRegistry: ProjectRegistryProvider;
   projectSearch: ProjectSearchProvider;
   codingAgentProvider: CodingAgentProvider;
+  worktreeManager: WorktreeManager;
 }
 
 export interface CoreServer {
@@ -889,14 +891,36 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               message: "Project is missing or disabled",
               retryable: false,
             });
-          return sendJson(
-            response,
-            201,
-            await options.codingAgentProvider.createTask({
+          const taskId = randomUUID();
+          const worktree = await options.worktreeManager.create({
+            taskId,
+            projectId: project.id,
+            projectPath: project.path,
+            title: input.title,
+          });
+          try {
+            const task = await options.codingAgentProvider.createTask({
               ...input,
-              workingDirectory: project.path,
-            }),
-          );
+              taskId,
+              workingDirectory: worktree.path,
+            });
+            await options.bus.publish(
+              options.bus.create("git.worktree.created", "core.worktrees", {
+                taskId,
+                projectId: project.id,
+                path: worktree.path,
+                branch: worktree.branch,
+                baselineRevision: worktree.baselineRevision,
+                sourceDirty: worktree.sourceDirty,
+              }),
+            );
+            return sendJson(response, 201, task);
+          } catch (cause) {
+            await options.worktreeManager
+              .cleanup(taskId)
+              .catch(() => undefined);
+            throw cause;
+          }
         }
         if (
           /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff)$/.test(
