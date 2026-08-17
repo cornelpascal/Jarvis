@@ -56,6 +56,8 @@ Current types through Phase 8:
 | `voice.speaking`, `voice.interrupted`       | Output audio/barge-in lifecycle              | Transient            |
 | `voice.muted.changed`                       | Explicit microphone mute state               | Transient            |
 | `voice.disconnected`, `voice.failed`        | Visible voice termination/failure            | Transient            |
+| `voice.wake_word.state`                     | Local detector lifecycle, no audio           | Transient            |
+| `voice.activation.requested`                | Hotkey/wake/UI activation signal             | Durable              |
 | `research.started`, `research.completed`    | Durable research lifecycle/result summary    | Durable              |
 | `research.searching`                        | Active provider progress                     | Transient            |
 | `research.source_found`                     | Attributable, web-tainted source             | Durable              |

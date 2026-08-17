@@ -1,4 +1,8 @@
-import type { EventPayloadMap, KnownJarvisEvent } from "@jarvis/protocol";
+import type {
+  EventPayloadMap,
+  KnownJarvisEvent,
+  WakeWordState,
+} from "@jarvis/protocol";
 
 export type JarvisMode = EventPayloadMap["jarvis.state.changed"]["state"];
 export type Telemetry = EventPayloadMap["system.telemetry"];
@@ -19,6 +23,7 @@ export interface HudState {
   telemetry?: Telemetry;
   activity: string[];
   lastRoute?: RouteSummary;
+  wakeWordState: WakeWordState;
 }
 
 export const initialHudState: HudState = {
@@ -27,6 +32,7 @@ export const initialHudState: HudState = {
   agents: {},
   messages: [],
   activity: [],
+  wakeWordState: "disabled",
 };
 
 function appendActivity(state: HudState, message: string): string[] {
@@ -109,6 +115,23 @@ export function reduceHudEvent(
         mode: "ERROR",
         modeReason: event.payload.message,
         activity: appendActivity(state, `Voice error: ${event.payload.code}`),
+      };
+    case "voice.wake_word.state":
+      return {
+        ...state,
+        wakeWordState: event.payload.state,
+        activity:
+          event.payload.state === "detected"
+            ? appendActivity(state, "Wake word detected")
+            : state.activity,
+      };
+    case "voice.activation.requested":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `Voice activation: ${event.payload.source.replaceAll("_", " ")}`,
+        ),
       };
     case "research.started":
       return {

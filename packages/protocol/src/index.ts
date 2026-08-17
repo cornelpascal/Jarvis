@@ -13,5 +13,6 @@ export * from "./system.js";
 export * from "./screenshot.js";
 export * from "./memory.js";
 export * from "./notifications.js";
+export * from "./wake-word.js";
 export * from "./transport.js";
 export * from "./voice.js";

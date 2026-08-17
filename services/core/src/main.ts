@@ -18,7 +18,7 @@ import {
   WindowsScreenshotProvider,
   WindowsSystemControlProvider,
 } from "@jarvis/os-abstractions/windows";
-import { OpenAiRealtimeGateway } from "@jarvis/voice";
+import { OpenAiRealtimeGateway, OpenWakeWordProvider } from "@jarvis/voice";
 import { OpenAiResearchProvider } from "@jarvis/research";
 import { PlaywrightBrowserProvider } from "@jarvis/browser";
 import { SqliteProjectRegistry, SqliteProjectSearch } from "@jarvis/projects";
@@ -48,6 +48,13 @@ const sessionToken =
   process.env.JARVIS_SESSION_TOKEN ?? randomBytes(32).toString("base64url");
 const voiceGateway = new OpenAiRealtimeGateway({
   ...(process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : {}),
+});
+const wakeWordProvider = new OpenWakeWordProvider({
+  scriptPath: resolve(root, "services/voice/python/openwakeword_sidecar.py"),
+  phrase: config.wake_word.phrase,
+  threshold: config.wake_word.threshold,
+  cooldownMs: config.wake_word.cooldown_ms,
+  pythonExecutable: resolve(root, ".tooling/wake-word/Scripts/python.exe"),
 });
 const researchProvider = new OpenAiResearchProvider({
   ...(process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : {}),
@@ -106,9 +113,30 @@ const server = createCoreServer({
   screenshotProvider,
   memoryProvider,
   notificationProvider,
+  wakeWordProvider,
 });
 
 await server.start();
+const unsubscribeWakeWord = wakeWordProvider.subscribe((state, detection) => {
+  void bus.publish(
+    bus.create("voice.wake_word.state", "voice.wake-word", {
+      state,
+      ...(detection
+        ? { phrase: detection.phrase, score: detection.score }
+        : {}),
+    }),
+    { durable: false },
+  );
+  if (state === "detected" && detection)
+    void bus.publish(
+      bus.create("voice.activation.requested", "voice.wake-word", {
+        source: "wake_word",
+        phrase: detection.phrase,
+      }),
+    );
+});
+if (config.wake_word.enabled)
+  await wakeWordProvider.start().catch(() => undefined);
 await projectRegistry.initialize();
 await bus.publish(
   bus.create("jarvis.ready", "core", { healthUrl: `${server.url}/health` }),
@@ -136,6 +164,7 @@ async function stop(signal: string): Promise<void> {
   stopping = true;
   logger.log("info", "shutdown.requested", { signal });
   stopTelemetry();
+  unsubscribeWakeWord();
   await server.stop();
   database.close();
   process.exitCode = 0;

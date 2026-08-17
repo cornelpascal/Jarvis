@@ -36,7 +36,7 @@ Phase 1 closes the event-channel replay/backpressure gap with a 256 KiB message 
 
 Phase 3 grants the Tauri host only enumerated monitor discovery and window create/place/focus/show/close capabilities. External web content is not loaded by the deck in this phase, and no generic shell or filesystem permission is added. Dynamically created windows must use the fixed `reference-deck` label and local application URL.
 
-Phase 4 keeps `OPENAI_API_KEY` exclusively in JARVIS Core. The renderer submits only a bounded SDP offer over an origin-checked route authenticated by the launch-scoped token. Core creates the provider call and returns only SDP/call metadata. Provider errors are reduced to bounded safe messages; upstream bodies and authorization headers are not logged. Voice lifecycle submissions use a strict discriminated schema and cannot name arbitrary event types. Microphone capture begins only after `Alt+Space` or an explicit UI action, remains visibly active, and stops on **END VOICE** or teardown. There is no wake word or continuous pre-activation cloud stream.
+Phase 4 keeps `OPENAI_API_KEY` exclusively in JARVIS Core. The renderer submits only a bounded SDP offer over an origin-checked route authenticated by the launch-scoped token. Core creates the provider call and returns only SDP/call metadata. Provider errors are reduced to bounded safe messages; upstream bodies and authorization headers are not logged. Voice lifecycle submissions use a strict discriminated schema and cannot name arbitrary event types. Realtime microphone capture begins only after `Alt+Space`, local wake detection, or an explicit UI action, remains visibly active, and stops on **END VOICE** or teardown. Wake-word audio is processed only by the optional local sidecar; there is no continuous pre-activation cloud stream.
 
 Phase 5 treats routing as classification, never authorization. `/commands/route` accepts only authenticated, origin-checked, size-bounded JSON with `provenance.origin=user`; arbitrary provenance and fields fail schema validation. Decisions expose a bounded allow-listed shortlist and no executable arguments or approval flag. Injection-shaped text can select a consequential category but cannot invoke it. Execution remains absent until the owning subsystem and permission phase exist.
 
@@ -331,6 +331,7 @@ The developer log viewer is separate from the conversation. The UI shows user-me
 - Scope queries require exact session/project identifiers and never fall back to broader records when context is missing.
 - Notification bodies are fixed safe summaries; raw web, agent, command, and deployment error content is never copied into notifications.
 - Background notices are visual-only by default, avoiding unsolicited spoken disclosure.
+- Wake-word processing is disabled by default, runs in a tool-less local sidecar, receives no secrets, and emits no audio samples to Core or the network.
 
 ## Supply-chain and licensing controls
 

@@ -12,6 +12,13 @@ describe("configuration", () => {
         app: { name: "JARVIS" },
         projects: { roots: ["C:\\Documents"] },
         voice: { enabled: true, activation: "hotkey", hotkey: "Alt+Space" },
+        wake_word: {
+          enabled: false,
+          engine: "openwakeword",
+          phrase: "hey jarvis",
+          threshold: 0.5,
+          cooldown_ms: 3000,
+        },
         references: {
           mode: "smart",
           visual_threshold: 0.65,

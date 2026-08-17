@@ -18,6 +18,13 @@ export const jarvisConfigSchema = z.strictObject({
     activation: z.literal("hotkey"),
     hotkey: z.string().min(1),
   }),
+  wake_word: z.strictObject({
+    enabled: z.boolean(),
+    engine: z.literal("openwakeword"),
+    phrase: z.literal("hey jarvis"),
+    threshold: z.number().min(0.1).max(0.95),
+    cooldown_ms: z.int().min(1_000).max(60_000),
+  }),
   references: z.strictObject({
     mode: z.literal("smart"),
     visual_threshold: z.number().min(0).max(1),

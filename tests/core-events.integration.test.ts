@@ -33,6 +33,7 @@ import type {
   ScreenshotProvider,
   MemoryProvider,
   NotificationProvider,
+  WakeWordProvider,
   WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
@@ -294,12 +295,27 @@ const notificationProvider: NotificationProvider = {
   markRead: () => Promise.resolve(undefined),
   close: () => undefined,
 };
+const wakeWordProvider: WakeWordProvider = {
+  health: () =>
+    Promise.resolve({ status: "available", capabilities: ["fixture"] }),
+  state: () => "disabled",
+  start: () => Promise.resolve(),
+  stop: () => Promise.resolve(),
+  subscribe: () => () => undefined,
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
     app: { name: "JARVIS" },
     projects: { roots: ["C:\\Documents"] },
     voice: { enabled: true, activation: "hotkey", hotkey: "Alt+Space" },
+    wake_word: {
+      enabled: false,
+      engine: "openwakeword",
+      phrase: "hey jarvis",
+      threshold: 0.5,
+      cooldown_ms: 3000,
+    },
     references: {
       mode: "smart",
       visual_threshold: 0.65,
@@ -387,6 +403,7 @@ describe("core event stream", () => {
       screenshotProvider,
       memoryProvider,
       notificationProvider,
+      wakeWordProvider,
     });
     await server.start();
     await bus.publish(
@@ -452,6 +469,7 @@ describe("core event stream", () => {
       screenshotProvider,
       memoryProvider,
       notificationProvider,
+      wakeWordProvider,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -505,6 +523,7 @@ describe("core event stream", () => {
       screenshotProvider,
       memoryProvider,
       notificationProvider,
+      wakeWordProvider,
     });
     await server.start();
     const unauthorized = await fetch(

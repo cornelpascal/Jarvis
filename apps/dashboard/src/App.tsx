@@ -197,6 +197,27 @@ export function App() {
     [hud.approval, resolvingApproval],
   );
 
+  const toggleWakeWord = useCallback(async (): Promise<void> => {
+    try {
+      const response = await coreRequest("/wake-word/control", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          enabled: !["starting", "listening", "detected"].includes(
+            hud.wakeWordState,
+          ),
+        }),
+      });
+      if (!response.ok)
+        throw new Error(`Wake word unavailable (${String(response.status)})`);
+      setError(undefined);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Wake word unavailable",
+      );
+    }
+  }, [hud.wakeWordState]);
+
   useEffect(() => {
     const cleanup = connectCore({
       onConnection: setConnection,
@@ -218,11 +239,13 @@ export function App() {
             await provider.openReferenceDeck(placement?.referenceMonitorId);
           });
         }
+        if (!replayed && event.type === "voice.activation.requested")
+          void activateVoice();
       },
       onError: (cause) => setError(cause.message),
     });
     return cleanup;
-  }, []);
+  }, [activateVoice]);
 
   useEffect(() => {
     const unsubscribe = voice.subscribe((state, message) => {
@@ -577,6 +600,17 @@ export function App() {
           </button>
           <button onClick={() => setShowNotifications(true)} type="button">
             NOTICES
+          </button>
+          <button
+            className={
+              ["starting", "listening", "detected"].includes(hud.wakeWordState)
+                ? "active"
+                : ""
+            }
+            onClick={() => void toggleWakeWord()}
+            type="button"
+          >
+            WAKE {hud.wakeWordState.toUpperCase()}
           </button>
           <button
             onClick={() => setShowInspector((shown) => !shown)}

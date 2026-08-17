@@ -3,7 +3,9 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/target/**", "**/coverage/**"] },
+  {
+    ignores: ["**/dist/**", "**/target/**", "**/coverage/**", ".tooling/**"],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {

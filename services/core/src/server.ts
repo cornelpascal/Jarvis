@@ -64,6 +64,8 @@ import {
   notificationListRequestSchema,
   notificationReadRequestSchema,
   type NotificationProvider,
+  wakeWordControlSchema,
+  type WakeWordProvider,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -103,6 +105,7 @@ export interface CoreServerOptions {
   screenshotProvider: ScreenshotProvider;
   memoryProvider: MemoryProvider;
   notificationProvider: NotificationProvider;
+  wakeWordProvider: WakeWordProvider;
 }
 
 export interface CoreServer {
@@ -1198,6 +1201,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/memory/forget" ||
         request.url === "/notifications/list" ||
         request.url === "/notifications/read" ||
+        request.url === "/wake-word/control" ||
         /^\/deployment\/proposals\/[^/]+\/save$/.test(request.url ?? "") ||
         /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
@@ -1938,6 +1942,32 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
                 retryable: false,
               });
         }
+        if (request.url === "/wake-word/control") {
+          const input = wakeWordControlSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "voice.wake_word",
+                resource: "microphone:wake-word",
+                reason: input.enabled
+                  ? "Enable local wake-word microphone processing"
+                  : "Disable local wake-word microphone processing",
+                arguments: { enabled: input.enabled },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          if (input.enabled) await options.wakeWordProvider.start();
+          else await options.wakeWordProvider.stop();
+          return sendJson(response, 200, {
+            state: options.wakeWordProvider.state(),
+          });
+        }
         if (
           /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
             request.url ?? "",
@@ -2269,6 +2299,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
       unsubscribe();
       unsubscribeCoding();
       options.notificationProvider.close();
+      await options.wakeWordProvider.stop();
       await options.browserProvider.close();
       await options.codingAgentProvider.close();
       for (const [client, state] of clients) {

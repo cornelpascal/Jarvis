@@ -33,6 +33,7 @@ export const permissionActionSchema = z.enum([
   "memory.write",
   "notification.read",
   "notification.update",
+  "voice.wake_word",
 ]);
 export type PermissionAction = z.infer<typeof permissionActionSchema>;
 
@@ -100,6 +101,7 @@ const ACTION_RISK: Record<PermissionAction, RiskLevel> = {
   "memory.write": 1,
   "notification.read": 0,
   "notification.update": 1,
+  "voice.wake_word": 1,
 };
 
 function canonicalJson(value: unknown): string {

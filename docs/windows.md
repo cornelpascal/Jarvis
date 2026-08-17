@@ -1,6 +1,6 @@
 # Windows development and runtime
 
-Status: Implemented through Phase 19
+Status: Implemented through Phase 22
 Last updated: 2026-08-17
 
 ## Prerequisites
@@ -54,6 +54,8 @@ corepack pnpm dev
 Never use a `VITE_` prefix for this key; Vite-prefixed values are renderer-visible. The microphone permission prompt comes from WebView2 on first use. The bottom rail exposes voice activation, mute/unmute, and session termination. Input/output devices are supported by the provider contract and Chromium device APIs; the settings selector is scheduled for the full settings phase.
 
 V1 voice is press-to-activate. Ending the session stops microphone tracks and closes WebRTC. Realtime call creation times out, connection loss retries twice, and missing credentials produce an explicit unavailable state.
+
+Optional local wake-word setup is documented in `docs/wake-word.md`. It is disabled by default; run `scripts\install-wake-word.ps1`, then use **WAKE DISABLED** in the HUD or set `wake_word.enabled: true` for startup. This local detector never replaces the Alt+Space fallback and never streams pre-activation audio to a cloud service.
 
 ## System tools
 

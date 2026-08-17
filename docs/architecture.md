@@ -1,6 +1,6 @@
 # JARVIS Architecture
 
-Status: Implemented through Phase 4
+Status: Implemented through Phase 22
 Last updated: 2026-08-17
 
 ## Purpose
@@ -38,6 +38,8 @@ The deck implements `SOURCES`, `IMAGES`, `VIDEO`, `WEB`, `CODE_DIFF`, `DOCUMENT`
 `HotkeyProvider` owns registration and cleanup of `Alt+Space`. The native adapter uses the Tauri global-shortcut plugin with only register/query/unregister permissions; the browser development adapter listens for the same chord only while the page is focused. Activation restores, shows, and focuses the HUD before starting voice. Registration conflicts are visible and never replace another application's shortcut.
 
 `OpenAiWebRtcVoiceProvider` keeps microphone capture, remote audio playback, mute, input/output device selection, and the WebRTC peer in WebView2. `services/voice` owns provider call creation. The dashboard posts an SDP offer to authenticated JARVIS Core; Core creates `POST /v1/realtime/calls` with the server-side `OPENAI_API_KEY` and returns only the SDP answer and non-secret call ID. No standard or temporary provider credential crosses into renderer state.
+
+Wake-word activation is a separate local provider. A project-local openWakeWord sidecar owns its microphone stream and ONNX inference, exposes no JARVIS tools, and returns only bounded detection metadata to Core. Core converts a valid detection into the same dashboard voice activation path used by the hotkey. The provider is disabled by default and can fail without affecting Alt+Space.
 
 Server VAD creates responses and enables response interruption. Data-channel events map to typed `voice.*` events and durable transcript messages; the HUD never infers listening/speaking state from transcript text. Unexpected peer loss has a bounded two-attempt reconnect. Explicit **END VOICE** stops tracks and the peer, so V1 has no always-listening cloud microphone.
 

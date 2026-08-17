@@ -121,6 +121,22 @@ export const eventPayloadSchemas = {
     message: z.string().min(1),
     retryable: z.boolean(),
   }),
+  "voice.wake_word.state": z.strictObject({
+    state: z.enum([
+      "disabled",
+      "starting",
+      "listening",
+      "detected",
+      "unavailable",
+      "error",
+    ]),
+    phrase: z.string().min(1).optional(),
+    score: z.number().min(0).max(1).optional(),
+  }),
+  "voice.activation.requested": z.strictObject({
+    source: z.enum(["hotkey", "wake_word", "ui"]),
+    phrase: z.string().min(1).optional(),
+  }),
   "conversation.message.added": z.strictObject({
     messageId: z.string().min(1),
     role: z.enum(["user", "assistant", "activity"]),
