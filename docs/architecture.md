@@ -1,6 +1,6 @@
 # JARVIS Architecture
 
-Status: Implemented through Phase 22
+Status: Implemented through Phase 23
 Last updated: 2026-08-17
 
 ## Purpose
@@ -18,6 +18,12 @@ Phases 0–4 implement the monorepo foundation, typed event stream, functional H
 - SQLite: foreign keys, WAL mode, versioned migrations, and initial tables for every required domain. Secret values are excluded by design.
 - Development launcher: a random 256-bit launch token is passed to the core and dashboard processes through their environment; it never appears in the URL.
 - Build outputs: `apps/dashboard/dist` and `services/core/dist`.
+
+## Phase 23 packaged runtime
+
+Windows releases embed Core as a Node single-executable sidecar declared through Tauri `externalBin`. The sidecar bundles JARVIS TypeScript services but loads Playwright from an installer resource directory so Playwright's filesystem assets remain intact. The packaged YAML configuration is read-only application material; mutable database, logs, browser profiles, screenshots, and worktrees remain under `%LOCALAPPDATA%\Jarvis`.
+
+The Rust host is the process owner and connection authority. It creates a fresh launch token, passes it only through the child environment and private Tauri IPC, starts Core once, and terminates it when the desktop exits. Single-instance handling focuses the existing HUD. Core crashes are visible as transport disconnection and are not automatically restarted in a loop. Start-at-login is a separate opt-in adapter.
 
 ## Phase 2 HUD projection
 

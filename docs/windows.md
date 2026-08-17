@@ -1,6 +1,6 @@
 # Windows development and runtime
 
-Status: Implemented through Phase 22
+Status: Implemented through Phase 23
 Last updated: 2026-08-17
 
 ## Prerequisites
@@ -29,6 +29,8 @@ The native shell can be started after Rust/MSVC installation:
 ```powershell
 corepack pnpm --filter @jarvis/dashboard tauri dev
 ```
+
+The native shell builds and owns its Node single-executable core sidecar. It generates a private token at launch, so it must not be run alongside a separate development core on port 43117. Installer, start-at-login, recovery, and upgrade details are in [packaging](packaging.md).
 
 Compile and smoke the native host without creating an installer:
 
@@ -89,3 +91,11 @@ Set `JARVIS_DATA_DIR` only when an explicitly isolated data location is needed. 
 ```
 
 `health-check.ps1` fails unless both the core and database report `ok`. Development output is structured JSON. Persistent rotating log files and the developer log viewer arrive with the observability/UI phases.
+
+## Installer
+
+```powershell
+.\scripts\package.ps1
+```
+
+This produces a current-user NSIS installer under `apps\dashboard\src-tauri\target\release\bundle\nsis`. The local artifact is unsigned. It includes the core and browser runtime, needs no system Node.js, leaves start-at-login disabled, and preserves `%LOCALAPPDATA%\Jarvis` across upgrades.

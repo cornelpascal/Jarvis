@@ -1,6 +1,6 @@
 # JARVIS Security Architecture
 
-Status: Enforced through Phase 4
+Status: Enforced through Phase 23
 Last updated: 2026-08-17
 
 ## Security goals
@@ -332,6 +332,10 @@ The developer log viewer is separate from the conversation. The UI shows user-me
 - Notification bodies are fixed safe summaries; raw web, agent, command, and deployment error content is never copied into notifications.
 - Background notices are visual-only by default, avoiding unsolicited spoken disclosure.
 - Wake-word processing is disabled by default, runs in a tool-less local sidecar, receives no secrets, and emits no audio samples to Core or the network.
+- The packaged host generates a fresh high-entropy token per launch and exposes it only through private Tauri IPC; release JavaScript contains no fixed production token.
+- The native host owns one hidden core sidecar, binds it to the validated loopback config, and kills it on desktop exit. Single-instance handling prevents accidental parallel owners, while crash restart is deliberately bounded to zero automatic attempts.
+- Installer startup registration is disabled by default and scoped to the current user. The renderer receives only autostart enable/disable operations, never generic shell permission.
+- Release resources contain application code/config and the isolated browser runtime, never user secrets. Mutable data stays outside the install directory so installer replacement cannot silently overwrite it.
 
 ## Supply-chain and licensing controls
 

@@ -311,11 +311,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 23 — Windows packaging
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Signed/package-ready installer pipeline, WebView/native/sidecar inclusion, clean install/update/uninstall, optional start-at-login, crash recovery, config/database migrations, log/data docs.
 - **Dependencies:** Stable preceding milestone features, release signing/secrets process, Windows CI.
 - **Acceptance:** Installer works on clean supported Windows; first run is clear; startup optional; update/migration preserves data; crashes recover without loops; uninstall scope documented; V1 demo scenarios pass on packaged build.
 - **Tests:** Clean VM install/smoke/uninstall, upgrade from previous fixture, migration/rollback backup, startup toggle, offline/degraded dependencies, crash restart, Windows x64 target and any declared architectures.
+- **Evidence:** The Windows x64 release pipeline builds JARVIS Core as a Node single-executable Tauri sidecar, bundles its validated config and isolated Playwright runtime, and emits a current-user NSIS installer. The native owner creates a fresh two-UUID session token, launches exactly one core, focuses an existing dashboard on a second launch, terminates the child on exit, and never performs unbounded crash restart. Start-at-login is opt-in. Sidecar health and native ownership smoke tests, packaging contract tests, transactional migrations, and a stopped-process backup script cover the locally automatable recovery surface.
+- **Known limitations:** The local installer is unsigned; a clean disposable Windows VM, SmartScreen reputation, antivirus matrix, hardware voice/wake-word, upgrade from a previously distributed artifact, and real provider credentials require release-operator infrastructure. The optional Python/ONNX wake-word environment is not bundled in the base installer. Automatic in-app updating is not enabled until signed update metadata and rollback operations exist.
 - **Known risks:** Code-signing reputation/cost, antivirus false positives, WebView/runtime prerequisites, sidecar updates, migration irreversibility.
 
 ## First useful V1 milestone

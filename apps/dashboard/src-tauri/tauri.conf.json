@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "ai.jarvis.desktop",
   "build": {
-    "beforeDevCommand": "corepack pnpm dev",
+    "beforeDevCommand": "corepack pnpm --dir ../.. build:sidecar && corepack pnpm dev",
     "devUrl": "http://127.0.0.1:1420",
-    "beforeBuildCommand": "corepack pnpm build",
+    "beforeBuildCommand": "corepack pnpm --dir ../.. build:sidecar && corepack pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -26,5 +26,15 @@
       "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost http://127.0.0.1:43117 ws://127.0.0.1:43117; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'"
     }
   },
-  "bundle": { "active": true, "targets": ["nsis", "msi"] }
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "externalBin": ["binaries/jarvis-core"],
+    "resources": ["resources/**/*"],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
 }

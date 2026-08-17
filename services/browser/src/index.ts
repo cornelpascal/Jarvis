@@ -1,5 +1,12 @@
 import { isIP } from "node:net";
-import { chromium, type BrowserContext, type Page } from "playwright-core";
+import { createRequire } from "node:module";
+import { resolve } from "node:path";
+import type {
+  Browser,
+  BrowserContext,
+  BrowserType,
+  Page,
+} from "playwright-core";
 import {
   browserActionResultSchema,
   type BrowserAction,
@@ -25,6 +32,22 @@ export interface PlaywrightBrowserProviderOptions {
   channel?: "msedge" | "chrome" | "chromium";
   executablePath?: string;
   allowPrivateNetwork?: boolean;
+}
+
+interface PlaywrightRuntime {
+  chromium: BrowserType<Browser>;
+}
+
+let playwrightRuntime: PlaywrightRuntime | undefined;
+
+function loadPlaywright(): PlaywrightRuntime {
+  if (playwrightRuntime) return playwrightRuntime;
+  const moduleRoot =
+    process.env.JARVIS_BROWSER_MODULE_ROOT ??
+    resolve(process.cwd(), "services/browser/package.json");
+  const runtimeRequire = createRequire(moduleRoot);
+  playwrightRuntime = runtimeRequire("playwright-core") as PlaywrightRuntime;
+  return playwrightRuntime;
 }
 
 function privateHost(hostname: string): boolean {
@@ -167,7 +190,7 @@ export class PlaywrightBrowserProvider implements BrowserProvider {
 
   async #getContext(): Promise<BrowserContext> {
     if (this.#context) return this.#context;
-    this.#context = await chromium.launchPersistentContext(
+    this.#context = await loadPlaywright().chromium.launchPersistentContext(
       this.#options.profileDirectory,
       {
         headless: this.#options.headless ?? false,

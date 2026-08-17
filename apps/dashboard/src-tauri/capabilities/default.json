@@ -17,6 +17,9 @@
     "core:window:allow-close",
     "global-shortcut:allow-is-registered",
     "global-shortcut:allow-register",
-    "global-shortcut:allow-unregister"
+    "global-shortcut:allow-unregister",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

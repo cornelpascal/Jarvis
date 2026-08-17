@@ -8,6 +8,7 @@ import {
   type HealthSnapshot,
   type KnownJarvisEvent,
 } from "@jarvis/protocol";
+import { invoke } from "@tauri-apps/api/core";
 
 export type ConnectionState = "connecting" | "connected" | "disconnected";
 
@@ -18,15 +19,32 @@ export interface CoreClientHandlers {
   onError?(error: Error): void;
 }
 
-const endpoint =
-  import.meta.env.VITE_JARVIS_CORE_URL ?? "http://127.0.0.1:43117";
-const sessionToken =
-  import.meta.env.VITE_JARVIS_SESSION_TOKEN ?? "development-only-token";
+interface RuntimeConnection {
+  endpoint: string;
+  sessionToken: string;
+}
+
+let connectionPromise: Promise<RuntimeConnection> | undefined;
+
+function runtimeConnection(): Promise<RuntimeConnection> {
+  connectionPromise ??=
+    "__TAURI_INTERNALS__" in window
+      ? invoke<RuntimeConnection>("runtime_connection")
+      : Promise.resolve({
+          endpoint:
+            import.meta.env.VITE_JARVIS_CORE_URL ?? "http://127.0.0.1:43117",
+          sessionToken:
+            import.meta.env.VITE_JARVIS_SESSION_TOKEN ??
+            "development-only-token",
+        });
+  return connectionPromise;
+}
 
 export async function coreRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
+  const { endpoint, sessionToken } = await runtimeConnection();
   const headers = new Headers(init.headers);
   headers.set("x-jarvis-session-token", sessionToken);
   return fetch(`${endpoint}${path}`, { ...init, headers, cache: "no-store" });
@@ -53,6 +71,7 @@ export function connectCore(handlers: CoreClientHandlers): () => void {
     if (stopped) return;
     handlers.onConnection("connecting");
     try {
+      const { endpoint, sessionToken } = await runtimeConnection();
       const response = await fetch(`${endpoint}/health`, { cache: "no-store" });
       if (!response.ok)
         throw new Error(`Core health check failed: ${String(response.status)}`);

@@ -4,7 +4,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/target/**", "**/coverage/**", ".tooling/**"],
+    ignores: [
+      "**/dist/**",
+      "**/target/**",
+      "**/coverage/**",
+      ".jarvis-build/**",
+      ".tooling/**",
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,

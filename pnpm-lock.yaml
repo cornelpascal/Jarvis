@@ -20,6 +20,9 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
       eslint:
         specifier: ^9.34.0
         version: 9.39.5
@@ -32,6 +35,9 @@ importers:
       globals:
         specifier: ^16.3.0
         version: 16.5.0
+      postject:
+        specifier: ^1.0.0-alpha.6
+        version: 1.0.0-alpha.6
       prettier:
         specifier: ^3.6.2
         version: 3.9.6
@@ -68,6 +74,9 @@ importers:
       '@tauri-apps/api':
         specifier: ^2.8.0
         version: 2.11.1
+      '@tauri-apps/plugin-autostart':
+        specifier: ^2.5.0
+        version: 2.5.1
       '@tauri-apps/plugin-global-shortcut':
         specifier: ^2.3.2
         version: 2.3.2
@@ -985,6 +994,9 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
+  '@tauri-apps/plugin-autostart@2.5.1':
+    resolution: {integrity: sha512-zS/xx7yzveCcotkA+8TqkI2lysmG2wvQXv2HGAVExITmnFfHAdj1arGsbbfs3o6EktRHf6l34pJxc3YGG2mg7w==}
+
   '@tauri-apps/plugin-global-shortcut@2.3.2':
     resolution: {integrity: sha512-UReHNXrLvpEjylE4jb4oCYiy96uRykPUthoCQCmRXYrd5hs5X9DrW+qOn7GLW57EJN4tdK8bgK5twBTz2NOxzA==}
 
@@ -1327,6 +1339,10 @@ packages:
   commander@4.1.1:
     resolution: {integrity: sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==}
     engines: {node: '>= 6'}
+
+  commander@9.5.0:
+    resolution: {integrity: sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ==}
+    engines: {node: ^12.20.0 || >=14}
 
   comment-parser@1.4.8:
     resolution: {integrity: sha512-rKZTGo4fzKYna8UcL0isTg5wkBNla7bxTypLwZQXjIdi++IdP1OJ41rI5Mti3/jltkPujbu4i9LIARYA+zpotQ==}
@@ -1749,6 +1765,11 @@ packages:
   postcss@8.5.26:
     resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
     engines: {node: ^10 || ^12 || >=14}
+
+  postject@1.0.0-alpha.6:
+    resolution: {integrity: sha512-b9Eb8h2eVqNE8edvKdwqkrY6O7kAwmI8kcnBv1NScolYJbo59XUF0noFq+lxbC1yN20bmC0WBEbDC5H/7ASb0A==}
+    engines: {node: '>=14.0.0'}
+    hasBin: true
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -2573,6 +2594,10 @@ snapshots:
       '@tauri-apps/cli-win32-ia32-msvc': 2.11.4
       '@tauri-apps/cli-win32-x64-msvc': 2.11.4
 
+  '@tauri-apps/plugin-autostart@2.5.1':
+    dependencies:
+      '@tauri-apps/api': 2.11.1
+
   '@tauri-apps/plugin-global-shortcut@2.3.2':
     dependencies:
       '@tauri-apps/api': 2.11.1
@@ -2928,6 +2953,8 @@ snapshots:
   color-name@1.1.4: {}
 
   commander@4.1.1: {}
+
+  commander@9.5.0: {}
 
   comment-parser@1.4.8: {}
 
@@ -3348,6 +3375,10 @@ snapshots:
       nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  postject@1.0.0-alpha.6:
+    dependencies:
+      commander: 9.5.0
 
   prelude-ls@1.2.1: {}
 

@@ -22,6 +22,7 @@ import {
 import { OpenAiWebRtcVoiceProvider } from "./voice-provider";
 import { MemoryCenter } from "./MemoryCenter";
 import { NotificationCenter } from "./NotificationCenter";
+import { setStartupEnabled, startupEnabled } from "./startup-provider";
 import "./styles.css";
 
 function percent(value: number | undefined): string {
@@ -46,6 +47,7 @@ export function App() {
   const [showDisplays, setShowDisplays] = useState(false);
   const [showMemories, setShowMemories] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [startsAtLogin, setStartsAtLogin] = useState<boolean>();
   const [displayCount, setDisplayCount] = useState(0);
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -217,6 +219,31 @@ export function App() {
       );
     }
   }, [hud.wakeWordState]);
+
+  const toggleStartup = useCallback(async (): Promise<void> => {
+    if (startsAtLogin === undefined) return;
+    try {
+      await setStartupEnabled(!startsAtLogin);
+      setStartsAtLogin(!startsAtLogin);
+      setError(undefined);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Start at login unavailable",
+      );
+    }
+  }, [startsAtLogin]);
+
+  useEffect(() => {
+    void startupEnabled()
+      .then(setStartsAtLogin)
+      .catch((cause: unknown) => {
+        setError(
+          cause instanceof Error
+            ? `Start at login unavailable: ${cause.message}`
+            : "Start at login unavailable",
+        );
+      });
+  }, []);
 
   useEffect(() => {
     const cleanup = connectCore({
@@ -600,6 +627,14 @@ export function App() {
           </button>
           <button onClick={() => setShowNotifications(true)} type="button">
             NOTICES
+          </button>
+          <button
+            className={startsAtLogin ? "active" : ""}
+            disabled={startsAtLogin === undefined}
+            onClick={() => void toggleStartup()}
+            type="button"
+          >
+            STARTUP {startsAtLogin ? "ON" : "OFF"}
           </button>
           <button
             className={

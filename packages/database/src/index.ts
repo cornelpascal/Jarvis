@@ -1,18 +1,15 @@
 import { mkdirSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname } from "node:path";
-import type { DatabaseSync as DatabaseSyncType } from "node:sqlite";
+import {
+  DatabaseSync,
+  type DatabaseSync as DatabaseSyncType,
+} from "node:sqlite";
 import {
   parseJarvisEvent,
   type JarvisEvent,
   type KnownJarvisEvent,
 } from "@jarvis/protocol";
 import { migrations } from "./migrations.js";
-
-const runtimeRequire = createRequire(import.meta.url);
-const { DatabaseSync } = runtimeRequire("node:sqlite") as {
-  DatabaseSync: typeof DatabaseSyncType;
-};
 
 export interface JarvisDatabase {
   readonly connection: DatabaseSyncType;

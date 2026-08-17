@@ -19,7 +19,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "health": "powershell -ExecutionPolicy Bypass -File scripts/health-check.ps1",
-    "smoke:native": "node scripts/smoke-native.mjs"
+    "smoke:native": "node scripts/smoke-native.mjs",
+    "build:sidecar": "node scripts/build-core-sidecar.mjs",
+    "smoke:sidecar": "node scripts/smoke-sidecar.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
@@ -29,8 +31,10 @@
     "eslint": "^9.34.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.1",
+    "esbuild": "^0.28.2",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
+    "postject": "^1.0.0-alpha.6",
     "tsup": "^8.5.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",

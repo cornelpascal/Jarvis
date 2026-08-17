@@ -1,14 +1,10 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 
-const projectRoot = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../..",
-);
+const projectRoot = resolve(process.env.JARVIS_RESOURCE_DIR ?? process.cwd());
 
 export const jarvisConfigSchema = z.strictObject({
   app: z.strictObject({ name: z.string().min(1) }),

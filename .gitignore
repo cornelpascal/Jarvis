@@ -13,3 +13,6 @@ target/
 .tooling/
 apps/dashboard/src-tauri/gen/
 apps/dashboard/src-tauri/target/
+apps/dashboard/src-tauri/binaries/
+apps/dashboard/src-tauri/resources/
+.jarvis-build/

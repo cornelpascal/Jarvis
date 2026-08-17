@@ -51,3 +51,13 @@ pnpm build
 ```
 
 See [architecture](docs/architecture.md), [security](docs/security.md), and the [implementation plan](docs/implementation-plan.md).
+
+## Windows package
+
+Build the tested per-user NSIS installer with:
+
+```powershell
+.\scripts\package.ps1
+```
+
+The packaged dashboard owns a localhost-only core sidecar and generates a new private connection token on every launch. See [packaging and recovery](docs/packaging.md) for installer output, backups, startup behavior, signing, and clean-VM release gates.
