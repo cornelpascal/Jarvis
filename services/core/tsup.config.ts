@@ -8,6 +8,6 @@ export default defineConfig({
   outDir: "dist",
   sourcemap: true,
   clean: true,
-  external: ["node:sqlite", "ws", "yaml", "zod"],
+  external: ["node:sqlite", "playwright-core", "ws", "yaml", "zod"],
   noExternal: [/^@jarvis\//],
 });

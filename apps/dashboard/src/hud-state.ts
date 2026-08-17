@@ -163,6 +163,29 @@ export function reduceHudEvent(
             : "Visual references not needed",
         ),
       };
+    case "browser.action.started":
+      return {
+        ...state,
+        activity: appendActivity(state, `Browser: ${event.payload.action}`),
+      };
+    case "browser.action.completed":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `Browser completed: ${event.payload.action}`,
+        ),
+      };
+    case "browser.action.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(
+          state,
+          `Browser failed: ${event.payload.code}`,
+        ),
+      };
     case "conversation.message.added":
       return {
         ...state,

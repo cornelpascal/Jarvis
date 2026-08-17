@@ -15,9 +15,13 @@ import {
   MAX_REPLAY_LIMIT,
   PROTOCOL_VERSION,
   eventStreamSubscribeSchema,
+  browserActionSchema,
   routeRequestSchema,
   voiceClientSignalSchema,
   type CapabilityManifest,
+  type BrowserProvider,
+  type BrowserAction,
+  type BrowserActionResult,
   type EventStreamServerMessage,
   type HealthSnapshot,
   type ResearchProvider,
@@ -32,6 +36,7 @@ import {
   SmartReferenceEvaluator,
 } from "@jarvis/research";
 import { IntentRouter } from "./orchestrator.js";
+import { BrowserAgentError } from "@jarvis/browser";
 
 const MAX_BUFFERED_BYTES = 512 * 1024;
 const SUBSCRIBE_TIMEOUT_MS = 5_000;
@@ -46,6 +51,7 @@ export interface CoreServerOptions {
   version: string;
   voiceGateway: RealtimeCallGateway;
   researchProvider: ResearchProvider;
+  browserProvider: BrowserProvider;
 }
 
 export interface CoreServer {
@@ -332,6 +338,68 @@ async function executeResearch(
   }
 }
 
+async function executeBrowserAction(
+  bus: LocalEventBus,
+  provider: BrowserProvider,
+  action: BrowserAction,
+): Promise<BrowserActionResult> {
+  await bus.publish(
+    bus.create("browser.action.started", "core.browser", {
+      requestId: action.requestId,
+      action: action.action,
+    }),
+  );
+  try {
+    const result = await provider.execute(action, {
+      signal: new AbortController().signal,
+      deadline: new Date(Date.now() + 20_000),
+      correlationId: action.requestId,
+    });
+    await bus.publish(
+      bus.create("browser.action.completed", "core.browser", {
+        requestId: result.requestId,
+        action: result.action,
+        ...(result.tabId ? { tabId: result.tabId } : {}),
+        ...(result.url ? { url: result.url } : {}),
+        ...(result.title ? { title: result.title } : {}),
+      }),
+    );
+    if (action.action === "open_reference" && result.url)
+      await bus.publish(
+        bus.create("reference.display.requested", "core.browser", {
+          mode: "WEB",
+          title: result.title ?? "BROWSER REFERENCE",
+          items: [
+            {
+              id: result.tabId ?? result.requestId,
+              type: "web",
+              title: result.title ?? result.url,
+              uri: result.url,
+            },
+          ],
+        }),
+      );
+    return result;
+  } catch (cause) {
+    const error =
+      cause instanceof BrowserAgentError
+        ? cause
+        : new BrowserAgentError(
+            "BROWSER_ACTION_FAILED",
+            "Browser action failed",
+          );
+    await bus.publish(
+      bus.create("browser.action.failed", "core.browser", {
+        requestId: action.requestId,
+        action: action.action,
+        code: error.code,
+        message: error.message,
+      }),
+    );
+    throw error;
+  }
+}
+
 async function evaluateAndDisplayReferences(
   bus: LocalEventBus,
   evaluator: SmartReferenceEvaluator,
@@ -410,9 +478,10 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
     environment: options.environment,
   });
   const capabilities = async (): Promise<CapabilityManifest> => {
-    const [voice, research] = await Promise.all([
+    const [voice, research, browser] = await Promise.all([
       options.voiceGateway.health(),
       options.researchProvider.health(),
+      options.browserProvider.health(),
     ]);
     return {
       protocolVersion: PROTOCOL_VERSION,
@@ -426,9 +495,14 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         "voice-events",
         "request-routing",
         "web-research",
+        "browser-agent",
       ],
       platform: process.platform,
-      providers: { voice: voice.status, research: research.status },
+      providers: {
+        voice: voice.status,
+        research: research.status,
+        browser: browser.status,
+      },
     };
   };
   const handleHttp = async (
@@ -463,7 +537,8 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
       request.method === "POST" &&
       (request.url === "/voice/call" ||
         request.url === "/voice/events" ||
-        request.url === "/commands/route")
+        request.url === "/commands/route" ||
+        request.url === "/browser/action")
     ) {
       if (
         !allowedOrigin(origin) ||
@@ -527,6 +602,20 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             );
           return sendJson(response, 200, decision);
         }
+        if (request.url === "/browser/action") {
+          const action = browserActionSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          return sendJson(
+            response,
+            200,
+            await executeBrowserAction(
+              options.bus,
+              options.browserProvider,
+              action,
+            ),
+          );
+        }
         const signal = voiceClientSignalSchema.parse(
           JSON.parse(await readBody(request)) as unknown,
         );
@@ -546,15 +635,25 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             message: cause.message,
             retryable: cause.retryable,
           });
+        if (cause instanceof BrowserAgentError)
+          return sendJson(response, 400, {
+            code: cause.code,
+            message: cause.message,
+            retryable: false,
+          });
         return sendJson(response, 400, {
           code:
             request.url === "/commands/route"
               ? "INVALID_ROUTE_REQUEST"
-              : "INVALID_VOICE_REQUEST",
+              : request.url === "/browser/action"
+                ? "INVALID_BROWSER_REQUEST"
+                : "INVALID_VOICE_REQUEST",
           message:
             request.url === "/commands/route"
               ? "Route request was malformed"
-              : "Voice request was malformed",
+              : request.url === "/browser/action"
+                ? "Browser request was malformed"
+                : "Voice request was malformed",
           retryable: false,
         });
       }
@@ -695,6 +794,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
       }),
     stop: async () => {
       unsubscribe();
+      await options.browserProvider.close();
       for (const [client, state] of clients) {
         clearTimeout(state.subscribeTimer);
         client.close(1001, "Core stopping");

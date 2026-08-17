@@ -11,12 +11,14 @@
   },
   "dependencies": {
     "@jarvis/config": "workspace:*",
+    "@jarvis/browser": "workspace:*",
     "@jarvis/database": "workspace:*",
     "@jarvis/event-bus": "workspace:*",
     "@jarvis/logging": "workspace:*",
     "@jarvis/protocol": "workspace:*",
     "@jarvis/research": "workspace:*",
     "@jarvis/voice": "workspace:*",
+    "playwright-core": "^1.62.1",
     "ws": "^8.18.3",
     "yaml": "^2.8.1",
     "zod": "^4.1.5"

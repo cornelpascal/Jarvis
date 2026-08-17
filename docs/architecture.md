@@ -59,6 +59,12 @@ Every source is deduplicated, timestamped, and labeled `{ origin: "web", trusted
 
 The cited research answer is published before reference evaluation begins. Accepted evaluations publish a display request asynchronously; the dashboard opens the Reference Deck only for a new live event and uses the persisted monitor placement. When no image/video discovery provider is configured, attributable source cards are the safe live fallback rather than invented media URLs.
 
+## Phase 8 Browser Agent
+
+`PlaywrightBrowserProvider` lazily launches a persistent Edge/Chromium context in the JARVIS-owned browser-profile directory. It maps opaque tab IDs to Playwright pages and exposes only typed navigation, scrolling, text finding, selector clicking, bounded extraction, and reference opening. The authenticated `/browser/action` boundary emits structured started/completed/failed events and can project an opened page into WEB mode on the Reference Deck.
+
+URL policy permits HTTP(S) only, rejects embedded credentials, and blocks private/loopback/link-local targets by default. The provider is a browser interaction adapter, not a shell or system bridge. Browser shutdown is part of Core shutdown so profile state is flushed without orphaning a browser process.
+
 ## Architectural principles
 
 1. The Node/TypeScript core owns business rules and authoritative state.

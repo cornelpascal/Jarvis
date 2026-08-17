@@ -263,6 +263,23 @@ export const eventPayloadSchemas = {
     message: z.string().min(1),
     retryable: z.boolean(),
   }),
+  "browser.action.started": z.strictObject({
+    requestId: z.uuid(),
+    action: z.string().min(1),
+  }),
+  "browser.action.completed": z.strictObject({
+    requestId: z.uuid(),
+    action: z.string().min(1),
+    tabId: z.string().optional(),
+    url: z.string().optional(),
+    title: z.string().optional(),
+  }),
+  "browser.action.failed": z.strictObject({
+    requestId: z.uuid(),
+    action: z.string().min(1),
+    code: z.string().min(1),
+    message: z.string().min(1),
+  }),
 } as const;
 
 export type EventPayloadMap = {

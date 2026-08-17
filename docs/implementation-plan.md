@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 7 — DONE**
-Next phase: **Phase 8 — NOT_STARTED**
+Current phase: **Phase 8 — DONE**
+Next phase: **Phase 9 — NOT_STARTED**
 
 ## Status definitions
 
@@ -41,7 +41,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 5 — Orchestrator/tool router         | DONE        | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
 | 6 — Web research                     | DONE        | Fresh structured research with sources and streamed events                        |
 | 7 — Smart References                 | DONE        | Independent visual-value evaluator and asynchronous rendering                     |
-| 8 — Browser Agent                    | NOT_STARTED | Isolated Playwright Chromium and typed browser actions                            |
+| 8 — Browser Agent                    | DONE        | Isolated Playwright Chromium and typed browser actions                            |
 | 9 — Project Registry                 | NOT_STARTED | Configurable project discovery and metadata                                       |
 | 10 — Project index/retrieval         | NOT_STARTED | Deterministic layered local project search                                        |
 | 11 — Codex integration               | NOT_STARTED | Structured `CodingAgentProvider` with background task stream                      |
@@ -151,12 +151,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 8 — Browser Agent
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Playwright Chromium install/profile lifecycle; typed open/tab/nav/reload/scroll/find/click/extract/open-reference actions; Reference Deck web surface; crash recovery; download/URL policy.
 - **Dependencies:** Phases 3, 5, and 14's interface contract (temporary deny-by-default guard until full broker); browser package install.
 - **Acceptance:** Required browser commands work in isolated profile; no personal Chrome dependency; page content remains untrusted; website cannot invoke host/coding tools.
 - **Tests:** Local fixture site integration, navigation/tab/find/click/extract, SSRF/scheme blocks, profile isolation, crash/restart, timeout, malicious prompt page, deck display.
-- **Known risks:** Chromium download size/updates, selector brittleness, login/cookie expectations, drive-by downloads, SSRF.
+- **Evidence:** 46 unit/integration tests pass. A real headless Microsoft Edge instance uses a disposable dedicated profile and successfully opens a fixture page, finds text, clicks a selector, observes DOM change, and extracts bounded content. URL policy tests reject unsafe schemes, credentials, and private targets. Core exposes only the authenticated action schema and emits browser/reference events. Format/lint/typecheck/build and native smoke pass.
+- **Known limitations:** Browser commands currently use the typed API directly; natural-language argument extraction is a later orchestrator executor concern. Downloads, uploads, popup policy, authentication workflows, crash restart, and selector repair are not enabled. The production adapter uses installed Microsoft Edge and reports launch failures cleanly.
 
 ### Phase 9 — Project Registry
 

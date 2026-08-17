@@ -20,6 +20,7 @@ import {
 import type {
   ResearchProvider,
   ResearchRequest,
+  BrowserProvider,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
 
@@ -66,6 +67,21 @@ const researchProvider: ResearchProvider = {
         preferredMode: "none",
       },
     }),
+};
+
+const browserProvider: BrowserProvider = {
+  health: () =>
+    Promise.resolve({ status: "available", capabilities: ["navigation"] }),
+  execute: (action) =>
+    Promise.resolve({
+      requestId: action.requestId,
+      action: action.action,
+      success: true,
+      tabId: "tab-test",
+      url: "https://example.com/",
+      title: "Example",
+    }),
+  close: () => Promise.resolve(),
 };
 
 function testConfig(port: number): JarvisConfig {
@@ -147,6 +163,7 @@ describe("core event stream", () => {
       version: "test",
       voiceGateway,
       researchProvider,
+      browserProvider,
     });
     await server.start();
     await bus.publish(
@@ -199,6 +216,7 @@ describe("core event stream", () => {
       version: "test",
       voiceGateway,
       researchProvider,
+      browserProvider,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -226,6 +244,7 @@ describe("core event stream", () => {
       version: "test",
       voiceGateway,
       researchProvider,
+      browserProvider,
     });
     await server.start();
     const unauthorized = await fetch(
@@ -320,6 +339,41 @@ describe("core event stream", () => {
     await expect(referenceDisplay).resolves.toMatchObject({
       type: "reference.display.requested",
       payload: { mode: "SOURCES" },
+    });
+
+    const browserCompleted = new Promise<KnownJarvisEvent>((resolve) => {
+      const unsubscribe = bus.subscribe((event) => {
+        if (event.type === "browser.action.completed") {
+          unsubscribe();
+          resolve(event);
+        }
+      });
+    });
+    const browserAction = await fetch(
+      `http://127.0.0.1:${String(port)}/browser/action`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          origin: "http://127.0.0.1:1420",
+        },
+        body: JSON.stringify({
+          action: "open_url",
+          requestId: "4c5020fd-302e-4388-a9ba-b9dc50d38653",
+          url: "https://example.com/",
+        }),
+      },
+    );
+    expect(browserAction.status).toBe(200);
+    await expect(browserAction.json()).resolves.toMatchObject({
+      action: "open_url",
+      success: true,
+      tabId: "tab-test",
+    });
+    await expect(browserCompleted).resolves.toMatchObject({
+      type: "browser.action.completed",
+      payload: { action: "open_url", tabId: "tab-test" },
     });
   });
 });

@@ -44,6 +44,8 @@ Phase 6 gives the research provider only HTTPS access to the configured model/se
 
 Phase 7 evaluates only query/answer metadata and source count; it cannot execute tools. Display events accept only strict item types and HTTP(S) URLs. A visual recommendation never changes provenance or trust, and a rendered source remains untrusted content. Reference windows open only from new live core events, not replay, preventing restart loops. Missing media providers degrade to cited source cards rather than guessed image/video URLs.
 
+Phase 8 runs Playwright in a JARVIS-owned profile, never a personal browser profile. Navigation rejects non-HTTP(S), credential-bearing, loopback, link-local, private IPv4, and local/private IPv6 targets by default. Extracted text and DOM state remain web-tainted. The browser provider receives no shell, filesystem, system, Codex, Git, deployment, memory, or approval interface; website text cannot submit authenticated Core commands. Extracted text is capped at 100 KiB and interactions have bounded timeouts.
+
 ## Assets
 
 Protected assets include:

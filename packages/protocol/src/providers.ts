@@ -1,5 +1,6 @@
 import type { VoiceRuntimeState } from "./voice.js";
 import type { ResearchRequest, ResearchResult } from "./research.js";
+import type { BrowserAction, BrowserActionResult } from "./browser.js";
 
 export interface OperationContext {
   signal: AbortSignal;
@@ -62,6 +63,10 @@ export interface VideoSearchProvider {
 
 export interface BrowserProvider {
   health(): Promise<ProviderHealth>;
+  execute(
+    action: BrowserAction,
+    context: OperationContext,
+  ): Promise<BrowserActionResult>;
   close(): Promise<void>;
 }
 

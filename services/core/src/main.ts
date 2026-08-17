@@ -12,6 +12,7 @@ import { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
 import { OpenAiRealtimeGateway } from "@jarvis/voice";
 import { OpenAiResearchProvider } from "@jarvis/research";
+import { PlaywrightBrowserProvider } from "@jarvis/browser";
 import { createCoreServer } from "./server.js";
 import { startTelemetry } from "./telemetry.js";
 
@@ -35,6 +36,10 @@ const voiceGateway = new OpenAiRealtimeGateway({
 const researchProvider = new OpenAiResearchProvider({
   ...(process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : {}),
 });
+const browserProvider = new PlaywrightBrowserProvider({
+  profileDirectory: paths.browserProfiles,
+  channel: "msedge",
+});
 const server = createCoreServer({
   config,
   environment,
@@ -44,6 +49,7 @@ const server = createCoreServer({
   version: manifest.version,
   voiceGateway,
   researchProvider,
+  browserProvider,
 });
 
 await server.start();
