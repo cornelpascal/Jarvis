@@ -23,6 +23,7 @@ import type {
   BrowserProvider,
   ProjectRegistryProvider,
   ProjectRegistrySnapshot,
+  ProjectSearchProvider,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
 
@@ -102,6 +103,21 @@ const projectRegistry: ProjectRegistryProvider = {
   select: () => {
     throw new Error("Not implemented by test registry");
   },
+};
+const projectSearch: ProjectSearchProvider = {
+  index: () =>
+    Promise.resolve({
+      files: 0,
+      symbols: 0,
+      indexedAt: new Date().toISOString(),
+    }),
+  search: (request) =>
+    Promise.resolve({
+      requestId: request.requestId,
+      projectId: request.projectId,
+      query: request.query,
+      matches: [],
+    }),
 };
 
 function testConfig(port: number): JarvisConfig {
@@ -185,6 +201,7 @@ describe("core event stream", () => {
       researchProvider,
       browserProvider,
       projectRegistry,
+      projectSearch,
     });
     await server.start();
     await bus.publish(
@@ -239,6 +256,7 @@ describe("core event stream", () => {
       researchProvider,
       browserProvider,
       projectRegistry,
+      projectSearch,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -268,6 +286,7 @@ describe("core event stream", () => {
       researchProvider,
       browserProvider,
       projectRegistry,
+      projectSearch,
     });
     await server.start();
     const unauthorized = await fetch(

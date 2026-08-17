@@ -96,4 +96,26 @@ export const migrations: readonly Migration[] = [
       "CREATE INDEX IF NOT EXISTS idx_project_files_project ON project_files(project_id)",
     ],
   },
+  {
+    version: 2,
+    name: "project_search_index",
+    statements: [
+      `CREATE TABLE IF NOT EXISTS project_documents (
+        id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        path TEXT NOT NULL, file_name TEXT NOT NULL, content TEXT NOT NULL, hash TEXT NOT NULL,
+        language TEXT NOT NULL, size_bytes INTEGER NOT NULL, indexed_at TEXT NOT NULL,
+        UNIQUE(project_id, path)
+      )`,
+      `CREATE TABLE IF NOT EXISTS project_document_symbols (
+        id TEXT PRIMARY KEY, document_id TEXT NOT NULL REFERENCES project_documents(id) ON DELETE CASCADE,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL, kind TEXT NOT NULL, line INTEGER NOT NULL
+      )`,
+      `CREATE VIRTUAL TABLE IF NOT EXISTS project_documents_fts USING fts5(
+        document_id UNINDEXED, project_id UNINDEXED, path, content, tokenize = 'unicode61'
+      )`,
+      "CREATE INDEX IF NOT EXISTS idx_project_documents_project ON project_documents(project_id)",
+      "CREATE INDEX IF NOT EXISTS idx_project_document_symbols_project_name ON project_document_symbols(project_id, name)",
+    ],
+  },
 ];

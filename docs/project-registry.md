@@ -37,3 +37,9 @@ All mutations emit typed `project.*` events. Removal never deletes source files.
 - Analysis is top-level and deterministic; deep framework inspection belongs to Phase 10.
 - Reparse points are skipped even when they intentionally point to a project.
 - Scans are startup/manual operations; filesystem watching begins with indexing.
+
+## Project index and retrieval
+
+Phase 10 adds `SqliteProjectSearch`. Indexing walks the canonical enabled project without following symlinks, skips dependency/build/VCS directories, ignores secret-key/environment filenames and binary/oversized content, and persists text plus symbols in SQLite/FTS5. Reindexing replaces changed content and removes deleted files.
+
+Retrieval combines exact path, filename, extracted symbols, bounded `rg --json` lexical matches, and SQLite FTS5. Results contain relative paths, optional lines/symbols, bounded snippets, an explicit retrieval layer, score, and index timestamp. The authenticated `/projects/index` and `/projects/search` APIs expose this contract. A routed project question with a selected project starts the search asynchronously and adds the highest-ranked evidence to the conversation.

@@ -13,7 +13,7 @@ import { Logger } from "@jarvis/logging";
 import { OpenAiRealtimeGateway } from "@jarvis/voice";
 import { OpenAiResearchProvider } from "@jarvis/research";
 import { PlaywrightBrowserProvider } from "@jarvis/browser";
-import { SqliteProjectRegistry } from "@jarvis/projects";
+import { SqliteProjectRegistry, SqliteProjectSearch } from "@jarvis/projects";
 import { createCoreServer } from "./server.js";
 import { startTelemetry } from "./telemetry.js";
 
@@ -46,6 +46,7 @@ const projectRegistry = new SqliteProjectRegistry({
   database,
   bus,
 });
+const projectSearch = new SqliteProjectSearch(database, bus);
 const server = createCoreServer({
   config,
   environment,
@@ -57,6 +58,7 @@ const server = createCoreServer({
   researchProvider,
   browserProvider,
   projectRegistry,
+  projectSearch,
 });
 
 await server.start();

@@ -48,6 +48,8 @@ Phase 8 runs Playwright in a JARVIS-owned profile, never a personal browser prof
 
 Phase 9 project scanning is read-only and bounded by depth and directory limits. Canonical real paths prevent path aliases from creating duplicate identities, while symbolic links and reparse points are not traversed. The registry reads top-level manifests but never executes discovered scripts. Registry removal deletes database metadata only, never project files.
 
+Phase 10 indexing excludes VCS/dependency/build directories, symbolic links, environment/credential/private-key filenames, binary content, and files over 1 MiB. Ripgrep is invoked as a fixed executable with an argument array, fixed-string query, ignore globs, output cap, and timeout; project text can never supply flags or a command line. Indexed project content remains project-origin data and cannot grant permissions.
+
 ## Assets
 
 Protected assets include:

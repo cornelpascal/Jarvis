@@ -506,3 +506,4 @@ export class SqliteProjectRegistry implements ProjectRegistryProvider {
 }
 
 export type { ProjectRecord, ProjectRegistrySnapshot } from "@jarvis/protocol";
+export { SqliteProjectSearch } from "./indexer.js";

@@ -195,6 +195,29 @@ export const eventPayloadSchemas = {
   }),
   "project.removed": z.strictObject({ projectId: z.string().min(1) }),
   "project.selected": z.strictObject({ projectId: z.string().min(1) }),
+  "project.indexing": z.strictObject({ projectId: z.string().min(1) }),
+  "project.indexed": z.strictObject({
+    projectId: z.string().min(1),
+    files: z.int().nonnegative(),
+    symbols: z.int().nonnegative(),
+    indexedAt: z.iso.datetime(),
+  }),
+  "project.search.started": z.strictObject({
+    requestId: z.uuid(),
+    projectId: z.string().min(1),
+    query: z.string().min(1),
+  }),
+  "project.search.completed": z.strictObject({
+    requestId: z.uuid(),
+    projectId: z.string().min(1),
+    matchCount: z.int().nonnegative(),
+  }),
+  "project.search.failed": z.strictObject({
+    requestId: z.uuid(),
+    projectId: z.string().min(1),
+    code: z.string().min(1),
+    message: z.string().min(1),
+  }),
   "codex.agent.progress": z.strictObject({
     agentRunId: z.string().min(1),
     taskId: z.string().min(1),

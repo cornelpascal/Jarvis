@@ -1,6 +1,7 @@
 import type { VoiceRuntimeState } from "./voice.js";
 import type { ResearchRequest, ResearchResult } from "./research.js";
 import type { BrowserAction, BrowserActionResult } from "./browser.js";
+import type { ProjectSearchRequest, ProjectSearchResult } from "./projects.js";
 
 export interface OperationContext {
   signal: AbortSignal;
@@ -75,7 +76,10 @@ export interface CodingAgentProvider {
 }
 
 export interface ProjectSearchProvider {
-  health(): Promise<ProviderHealth>;
+  index(
+    projectId: string,
+  ): Promise<{ files: number; symbols: number; indexedAt: string }>;
+  search(request: ProjectSearchRequest): Promise<ProjectSearchResult>;
 }
 
 export interface DeploymentProvider {

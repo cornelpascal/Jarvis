@@ -26,6 +26,10 @@ Current types through Phase 8:
 | `project.scan.failed`                     | Registry-level failure                      | Durable              |
 | `project.registered`, `project.updated`   | Project-panel projection contracts          | Durable              |
 | `project.removed`, `project.selected`     | Registry removal/current selection          | Durable              |
+| `project.indexing`, `project.indexed`     | Local index lifecycle and counts            | Durable              |
+| `project.search.started`                  | Deterministic retrieval began               | Durable              |
+| `project.search.completed`                | Retrieval result count                      | Durable              |
+| `project.search.failed`                   | Structured retrieval failure                | Durable              |
 | `codex.agent.progress`                    | Active-agent projection contract            | Durable when emitted |
 | `approval.requested`                      | Approval-surface projection contract        | Durable when emitted |
 | `reference.display.requested`             | Typed Reference Deck mode and items         | Durable when emitted |

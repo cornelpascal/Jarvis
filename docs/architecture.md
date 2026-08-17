@@ -354,6 +354,8 @@ Retrieval order is deterministic first:
 
 Search results carry evidence, relative paths, indexed revision/freshness, match type, and source range. `AGENTS.md`, README, configuration, build, test, route, model/schema, and deployment evidence receive explicit classifiers. Indexing is cancellable and excludes secrets, ignored paths, binaries, generated dependencies, and over-size content according to policy.
 
+Phase 10 implements the deterministic portion in `SqliteProjectSearch`: canonical tree enumeration, safe-text hashing, symbol extraction, SQLite document/FTS5 persistence, bounded ripgrep JSON execution with argument arrays, and ranked evidence de-duplication. The index refreshes on demand and automatically on first search. Semantic retrieval remains a future provider extension.
+
 ## Task and worktree model
 
 Task states are explicit and versioned:

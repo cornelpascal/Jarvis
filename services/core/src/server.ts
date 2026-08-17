@@ -17,7 +17,9 @@ import {
   eventStreamSubscribeSchema,
   browserActionSchema,
   projectEnabledRequestSchema,
+  projectIndexRequestSchema,
   projectRegisterRequestSchema,
+  projectSearchRequestSchema,
   projectSelectRequestSchema,
   routeRequestSchema,
   voiceClientSignalSchema,
@@ -26,6 +28,7 @@ import {
   type BrowserAction,
   type BrowserActionResult,
   type ProjectRegistryProvider,
+  type ProjectSearchProvider,
   type EventStreamServerMessage,
   type HealthSnapshot,
   type ResearchProvider,
@@ -58,6 +61,7 @@ export interface CoreServerOptions {
   researchProvider: ResearchProvider;
   browserProvider: BrowserProvider;
   projectRegistry: ProjectRegistryProvider;
+  projectSearch: ProjectSearchProvider;
 }
 
 export interface CoreServer {
@@ -449,6 +453,42 @@ async function evaluateAndDisplayReferences(
   );
 }
 
+async function executeProjectSearch(
+  bus: LocalEventBus,
+  provider: ProjectSearchProvider,
+  request: RouteRequest,
+): Promise<void> {
+  if (!request.activeProjectId) return;
+  try {
+    const result = await provider.search({
+      requestId: request.requestId,
+      projectId: request.activeProjectId,
+      query: request.text,
+      limit: 12,
+    });
+    const evidence = result.matches.slice(0, 5);
+    const content =
+      evidence.length === 0
+        ? "I couldn't find relevant project evidence for that question."
+        : `Relevant project evidence:\n${evidence
+            .map(
+              (match) =>
+                `- ${match.filePath}${match.line ? `:${String(match.line)}` : ""} — ${match.snippet.replaceAll("\n", " ")}`,
+            )
+            .join("\n")}`;
+    await bus.publish(
+      bus.create("conversation.message.added", "core.project-search", {
+        messageId: randomUUID(),
+        role: "assistant",
+        content,
+        citations: [],
+      }),
+    );
+  } catch {
+    // The provider already emits a structured project.search.failed event.
+  }
+}
+
 function sendStreamMessage(
   client: WebSocket,
   message: EventStreamServerMessage,
@@ -593,6 +633,8 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/browser/action" ||
         request.url === "/projects/scan" ||
         request.url === "/projects/register" ||
+        request.url === "/projects/index" ||
+        request.url === "/projects/search" ||
         request.url === "/projects/select" ||
         /^\/projects\/[^/]+\/enabled$/.test(request.url ?? ""))
     ) {
@@ -656,6 +698,12 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               },
               options.config.references.visual_threshold,
             );
+          if (decision.route === "project" && routeRequest.activeProjectId)
+            void executeProjectSearch(
+              options.bus,
+              options.projectSearch,
+              routeRequest,
+            );
           return sendJson(response, 200, decision);
         }
         if (request.url === "/browser/action") {
@@ -682,6 +730,26 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             response,
             201,
             await options.projectRegistry.register(input.path, input.enabled),
+          );
+        }
+        if (request.url === "/projects/index") {
+          const input = projectIndexRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          return sendJson(
+            response,
+            200,
+            await options.projectSearch.index(input.projectId),
+          );
+        }
+        if (request.url === "/projects/search") {
+          const input = projectSearchRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          return sendJson(
+            response,
+            200,
+            await options.projectSearch.search(input),
           );
         }
         if (request.url === "/projects/select") {

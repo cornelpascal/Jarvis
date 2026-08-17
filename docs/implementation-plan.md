@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 9 — DONE**
-Next phase: **Phase 10 — NOT_STARTED**
+Current phase: **Phase 10 — DONE**
+Next phase: **Phase 11 — NOT_STARTED**
 
 ## Status definitions
 
@@ -43,7 +43,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 7 — Smart References                 | DONE        | Independent visual-value evaluator and asynchronous rendering                     |
 | 8 — Browser Agent                    | DONE        | Isolated Playwright Chromium and typed browser actions                            |
 | 9 — Project Registry                 | DONE        | Configurable project discovery and metadata                                       |
-| 10 — Project index/retrieval         | NOT_STARTED | Deterministic layered local project search                                        |
+| 10 — Project index/retrieval         | DONE        | Deterministic layered local project search                                        |
 | 11 — Codex integration               | NOT_STARTED | Structured `CodingAgentProvider` with background task stream                      |
 | 12 — Worktree manager                | NOT_STARTED | One isolated worktree/branch per significant coding task                          |
 | 13 — Verification + diff UI          | NOT_STARTED | Configured checks and Reference Deck diff review                                  |
@@ -171,12 +171,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 10 — Project index / retrieval
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Exact/file/glob/ripgrep/symbol/FTS layers, incremental index, evidence/freshness, change watching, ignored/secret exclusion; semantic provider interface only unless justified.
 - **Dependencies:** Phase 9 project metadata, SQLite/event bus, ripgrep availability/bundling decision.
 - **Acceptance:** Authentication-location questions return relevant files/symbols with evidence; deterministic layers work without embeddings; changes update index; secrets/dependencies are excluded.
 - **Tests:** Multilanguage fixtures, exact/lexical/symbol/FTS ranking, incremental change/delete, cancellation, ignored paths, secret patterns, large repo performance budget.
-- **Known risks:** Parser coverage, stale indexes, Windows watcher behavior, generated-code noise, sensitive content indexing.
+- **Evidence:** 51 unit/integration tests pass. Multilayer fixtures cover filename, symbol, ripgrep, and FTS evidence; first-search indexing, secret-file exclusion, bounded text handling, and deleted-file cleanup. Authenticated index/search endpoints and routed selected-project searches emit real HUD/conversation state. Format, lint, typecheck, build, and native smoke pass.
+- **Known limitations:** Symbol extraction is regex-based for common declarations rather than a full language-server parser. Index refresh is on demand/first search; filesystem watching and cancellation hooks are not yet exposed. Semantic retrieval is intentionally deferred.
 
 ### Phase 11 — Codex integration
 

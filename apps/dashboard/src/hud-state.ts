@@ -262,6 +262,40 @@ export function reduceHudEvent(
     }
     case "project.selected":
       return { ...state, selectedProjectId: event.payload.projectId };
+    case "project.indexing":
+      return {
+        ...state,
+        mode: "THINKING",
+        modeReason: "Indexing project files",
+        activity: appendActivity(state, "Project indexing started"),
+      };
+    case "project.indexed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: `Indexed ${String(event.payload.files)} files`,
+        activity: appendActivity(state, "Project index ready"),
+      };
+    case "project.search.started":
+      return {
+        ...state,
+        mode: "THINKING",
+        modeReason: "Searching project evidence",
+      };
+    case "project.search.completed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: `Found ${String(event.payload.matchCount)} project matches`,
+        activity: appendActivity(state, "Project search complete"),
+      };
+    case "project.search.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(state, "Project search failed"),
+      };
     case "codex.agent.progress":
       return {
         ...state,
