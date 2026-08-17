@@ -180,6 +180,9 @@ importers:
       '@jarvis/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@jarvis/deployment':
+        specifier: workspace:*
+        version: link:../deployment
       '@jarvis/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
@@ -217,6 +220,18 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
+
+  services/deployment:
+    dependencies:
+      '@jarvis/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@jarvis/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@jarvis/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
 
   services/projects:
     dependencies:

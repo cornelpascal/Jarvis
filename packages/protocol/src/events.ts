@@ -331,6 +331,26 @@ export const eventPayloadSchemas = {
     code: z.string().min(1),
     message: z.string().min(1),
   }),
+  "deployment.started": z.strictObject({
+    runId: z.uuid(),
+    projectId: z.string().min(1),
+    environment: z.string().min(1),
+    adapterType: z.string().min(1),
+  }),
+  "deployment.completed": z.strictObject({
+    runId: z.uuid(),
+    projectId: z.string().min(1),
+    environment: z.string().min(1),
+    health: z.enum(["HEALTHY", "UNHEALTHY", "SKIPPED"]),
+    summary: z.string().min(1),
+  }),
+  "deployment.failed": z.strictObject({
+    runId: z.uuid().optional(),
+    projectId: z.string().min(1),
+    environment: z.string().min(1),
+    code: z.string().min(1),
+    message: z.string().min(1),
+  }),
   "approval.requested": z.strictObject({
     approvalId: z.string().min(1),
     action: z.string().min(1),

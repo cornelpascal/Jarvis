@@ -48,6 +48,10 @@ import {
   type TaskVerificationProvider,
   type GitTaskProvider,
   type GitTaskTarget,
+  type DeploymentManagerProvider,
+  deploymentConfigSchema,
+  deploymentExecuteRequestSchema,
+  type DeploymentPreview,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -81,6 +85,7 @@ export interface CoreServerOptions {
   taskVerification: TaskVerificationProvider;
   permissionBroker: PermissionBroker;
   gitTaskManager: GitTaskProvider;
+  deploymentManager: DeploymentManagerProvider;
 }
 
 export interface CoreServer {
@@ -742,6 +747,67 @@ function gitPushPermission(target: GitTaskTarget): PermissionRequest {
   });
 }
 
+function deploymentPermission(preview: DeploymentPreview): PermissionRequest {
+  return permissionRequest({
+    action: "deployment.execute",
+    resource: `deployment:${preview.projectId}:${preview.environment}`,
+    projectId: preview.projectId,
+    reason: `Deploy validated ${preview.adapterType} configuration to ${preview.environment}`,
+    arguments: {
+      environment: preview.environment,
+      adapterType: preview.adapterType,
+      configDigest: preview.configDigest,
+    },
+  });
+}
+
+async function prepareDeploymentRoute(
+  bus: LocalEventBus,
+  manager: DeploymentManagerProvider,
+  permissions: PermissionBroker,
+  request: RouteRequest,
+): Promise<void> {
+  if (!request.activeProjectId) {
+    await bus.publish(
+      bus.create("conversation.message.added", "core.deployment", {
+        messageId: randomUUID(),
+        role: "assistant",
+        content: "Select a project before requesting deployment.",
+        citations: [],
+      }),
+    );
+    return;
+  }
+  try {
+    const preview = manager.preview(request.activeProjectId, "production");
+    const decision = await permissions.authorize(deploymentPermission(preview));
+    await bus.publish(
+      bus.create("conversation.message.added", "core.deployment", {
+        messageId: randomUUID(),
+        role: "assistant",
+        content:
+          decision.state === "PENDING"
+            ? `${preview.summary} is ready and requires approval.`
+            : decision.state === "DENIED"
+              ? decision.reason
+              : `${preview.summary} was approved by policy.`,
+        citations: [],
+      }),
+    );
+  } catch (cause) {
+    const message =
+      cause instanceof Error ? cause.message : "Deployment preparation failed";
+    await bus.publish(
+      bus.create("deployment.failed", "core.deployment", {
+        projectId: request.activeProjectId,
+        environment: "production",
+        code: "DEPLOYMENT_PREPARATION_FAILED",
+        message,
+      }),
+    );
+  }
+}
+
 async function publishGitTarget(
   bus: LocalEventBus,
   provider: GitTaskProvider,
@@ -1032,6 +1098,8 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/projects/search" ||
         request.url === "/codex/tasks" ||
         /^\/git\/tasks\/[^/]+\/push$/.test(request.url ?? "") ||
+        request.url === "/deployment/configs" ||
+        request.url === "/deployment/execute" ||
         /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
           request.url ?? "",
@@ -1111,6 +1179,13 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             void prepareGitRoute(
               options.bus,
               options.gitTaskManager,
+              options.permissionBroker,
+              routeRequest,
+            );
+          if (decision.route === "deployment")
+            void prepareDeploymentRoute(
+              options.bus,
+              options.deploymentManager,
               options.permissionBroker,
               routeRequest,
             );
@@ -1390,6 +1465,70 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               code: "GIT_PUSH_FAILED",
               message,
               retryable: true,
+            });
+          }
+        }
+        if (request.url === "/deployment/configs") {
+          const config = deploymentConfigSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "project.configure",
+                resource: `deployment-config:${config.projectId}:${config.environment}`,
+                projectId: config.projectId,
+                reason: "Save a validated project deployment configuration",
+                arguments: {
+                  configId: config.id,
+                  adapterType: config.type,
+                },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          return sendJson(
+            response,
+            201,
+            options.deploymentManager.save(config),
+          );
+        }
+        if (request.url === "/deployment/execute") {
+          const input = deploymentExecuteRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          const preview = options.deploymentManager.preview(
+            input.projectId,
+            input.environment,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              deploymentPermission(preview),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          try {
+            return sendJson(
+              response,
+              200,
+              await options.deploymentManager.deploy(
+                input.projectId,
+                input.environment,
+                preview.configDigest,
+              ),
+            );
+          } catch (cause) {
+            return sendJson(response, 409, {
+              code: "DEPLOYMENT_FAILED",
+              message:
+                cause instanceof Error ? cause.message : "Deployment failed",
+              retryable: false,
             });
           }
         }

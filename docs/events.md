@@ -41,6 +41,7 @@ Current types through Phase 8:
 | `git.worktree.removed`                      | Safe managed-worktree cleanup               | Durable              |
 | `git.commit_requested`, `git.committed`     | Isolated task commit lifecycle              | Durable              |
 | `git.push_requested`, `git.pushed/failed`   | Explicit elevated publication lifecycle     | Durable              |
+| `deployment.started/completed/failed`       | Typed adapter execution and health outcome  | Durable              |
 | `approval.requested`                        | Approval-surface projection contract        | Durable when emitted |
 | `approval.approved`, `approval.rejected`    | Auditable policy/user resolution            | Durable              |
 | `reference.display.requested`               | Typed Reference Deck mode and items         | Durable when emitted |

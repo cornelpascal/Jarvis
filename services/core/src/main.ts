@@ -11,6 +11,7 @@ import { openJarvisDatabase } from "@jarvis/database";
 import { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
 import { SqlitePermissionBroker } from "@jarvis/permissions";
+import { SqliteDeploymentManager } from "@jarvis/deployment";
 import { OpenAiRealtimeGateway } from "@jarvis/voice";
 import { OpenAiResearchProvider } from "@jarvis/research";
 import { PlaywrightBrowserProvider } from "@jarvis/browser";
@@ -65,6 +66,7 @@ const worktreeManager = new GitWorktreeManager({
 const taskVerification = new TaskVerificationService({ database, bus });
 const gitTaskManager = new GitTaskManager(database);
 const permissionBroker = new SqlitePermissionBroker({ database, bus });
+const deploymentManager = new SqliteDeploymentManager({ database, bus });
 const server = createCoreServer({
   config,
   environment,
@@ -82,6 +84,7 @@ const server = createCoreServer({
   taskVerification,
   permissionBroker,
   gitTaskManager,
+  deploymentManager,
 });
 
 await server.start();

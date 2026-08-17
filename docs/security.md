@@ -58,6 +58,8 @@ Phase 14 centralizes tool authorization in a closed action catalog. Clients cann
 
 Phase 15 binds Git push approval to the exact task, owned branch, HEAD revision, and worktree-change digest, then recomputes that preview immediately before mutation. Only fixed remote `origin` and the exact `jarvis/*` task branch are accepted; force, tags, arbitrary refspecs, shell parsing, credential-bearing URLs, and interactive credential prompts are excluded. Secret-bearing changed paths fail before staging. A push failure may leave the approved local commit in the isolated worktree, but never reports success or mutates another checkout.
 
+Phase 16 deployment approval binds project, environment, adapter type, and the complete validated config digest. Configuration stores secret reference names only. Adapter dispatch is a closed registry with no generic shell fallback; valid but unavailable adapters fail closed. The initial dry-run adapter performs no host or network mutation and records an explicit `SKIPPED` health result.
+
 Phase 12 makes isolated Git worktrees mandatory for Core-created coding tasks. Source dirty state is observed but never reset or copied. Canonical containment and persisted ownership protect cleanup; dirty task worktrees are preserved. Repositories tracking `.env`, PEM, or private-key files are refused before checkout, and no non-Git fallback edits the registered source directory.
 
 ## Assets

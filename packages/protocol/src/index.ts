@@ -8,5 +8,6 @@ export * from "./references.js";
 export * from "./browser.js";
 export * from "./codex.js";
 export * from "./git.js";
+export * from "./deployment.js";
 export * from "./transport.js";
 export * from "./voice.js";

@@ -136,6 +136,26 @@ export function App() {
           if (!publish.ok)
             throw new Error(`Git push failed (${String(publish.status)})`);
         }
+        if (
+          approved &&
+          resolution.receiptId &&
+          approval.action === "deployment.execute" &&
+          approval.resource.startsWith("deployment:")
+        ) {
+          const [, projectId, environment] = approval.resource.split(":");
+          if (!projectId || !environment)
+            throw new Error("Deployment approval target is malformed");
+          const deployment = await coreRequest("/deployment/execute", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-jarvis-permission-receipt": resolution.receiptId,
+            },
+            body: JSON.stringify({ projectId, environment }),
+          });
+          if (!deployment.ok)
+            throw new Error(`Deployment failed (${String(deployment.status)})`);
+        }
         setError(undefined);
       } catch (cause) {
         setError(

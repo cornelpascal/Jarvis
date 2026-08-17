@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 15 — DONE**
-Next phase: **Phase 16 — NOT_STARTED**
+Current phase: **Phase 16 — DONE**
+Next phase: **Phase 17 — NOT_STARTED**
 
 ## Status definitions
 
@@ -49,7 +49,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 13 — Verification + diff UI          | DONE        | Configured checks and Reference Deck diff review                                  |
 | 14 — Permission broker               | DONE        | Complete mediation, risk policy, approvals, denial/injection tests                |
 | 15 — Git commit/push                 | DONE        | Explicit, resolved, audited commit/push flow; no auto-push                        |
-| 16 — Deployment system               | NOT_STARTED | Typed adapters, validated configured deploy, health events                        |
+| 16 — Deployment system               | DONE        | Typed adapters, validated configured deploy, health events                        |
 | 17 — Deployment config auto-creation | NOT_STARTED | Missing-config analysis/proposal/approval/save workflow                           |
 | 18 — Windows system tools            | NOT_STARTED | Allow-listed least-privilege control and telemetry adapters                       |
 | 19 — Screenshot context              | NOT_STARTED | Explicit active-window/display capture as conversation context                    |
@@ -234,11 +234,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 16 — Deployment system
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Typed discriminated deployment schema and repository, adapter registry, validation/preflight/deploy/health/rollback events, initial safe adapters/dry run, secrets by reference, Level 3 authorization.
 - **Dependencies:** Phases 9–10, 13–14; configured test project.
 - **Acceptance:** A configured fixture project validates and deploys through a typed adapter/dry-run target; health result appears; denial prevents mutation; unknown/custom adapter defaults deny.
 - **Tests:** Schema/version migration, adapter contract, dry-run, preflight failure, health timeout, rollback fixture, secret reference/redaction, approval binding, deployment event state.
+- **Evidence:** 69 unit/integration tests pass. The shared discriminated schema accepts only versioned dry-run, Docker Compose, PowerShell, or CI/CD records with named preflights, typed health checks, and secret references. SQLite persistence, config-digest preview, changed-config rejection, unknown-schema rejection, unavailable-adapter denial, durable run state, and dry-run start/completion events are covered. Core execution is Level 3 and the dashboard consumes its exact one-use receipt.
+- **Known limitations:** Only the non-mutating dry-run adapter is registered in this phase; Docker Compose, PowerShell, and CI/CD configs validate but fail closed until their adapter is installed. Dry-run health is `SKIPPED`; executable HTTP health checks, rollback, and adapter-specific preflight execution remain adapter work.
 - **Known risks:** Adapter-specific semantics, partial failure, rollback limits, credential scope, production/test target confusion.
 
 ### Phase 17 — Deployment config auto-creation

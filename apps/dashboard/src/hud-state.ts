@@ -428,6 +428,33 @@ export function reduceHudEvent(
         modeReason: event.payload.message,
         activity: appendActivity(state, `Git failed: ${event.payload.code}`),
       };
+    case "deployment.started":
+      return {
+        ...state,
+        mode: "CODING",
+        modeReason: `Deploying to ${event.payload.environment}`,
+        activity: appendActivity(state, "Deployment started"),
+      };
+    case "deployment.completed":
+      return {
+        ...state,
+        mode: "IDLE",
+        modeReason: event.payload.summary,
+        activity: appendActivity(
+          state,
+          `Deployment complete: ${event.payload.health}`,
+        ),
+      };
+    case "deployment.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(
+          state,
+          `Deployment failed: ${event.payload.code}`,
+        ),
+      };
     case "approval.requested":
       return {
         ...state,

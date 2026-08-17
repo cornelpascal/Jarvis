@@ -28,6 +28,7 @@ import type {
   ProjectSearchProvider,
   TaskVerificationProvider,
   GitTaskProvider,
+  DeploymentManagerProvider,
   WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
@@ -190,6 +191,31 @@ const gitTaskManager: GitTaskProvider = {
       committed: false,
     }),
 };
+const deploymentManager: DeploymentManagerProvider = {
+  save: (config) => config,
+  get: () => undefined,
+  preview: (projectId, environment) => ({
+    projectId,
+    environment,
+    adapterType: "dry_run",
+    configDigest: "c".repeat(64),
+    summary: `dry_run deployment to ${environment}`,
+  }),
+  deploy: (projectId, environment) => {
+    const now = new Date().toISOString();
+    return Promise.resolve({
+      runId: "34ca60a5-b863-49f9-93e1-f93f03e1f305",
+      projectId,
+      environment,
+      adapterType: "dry_run",
+      state: "COMPLETED",
+      health: "SKIPPED",
+      summary: "Dry run completed",
+      startedAt: now,
+      completedAt: now,
+    });
+  },
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -278,6 +304,7 @@ describe("core event stream", () => {
       taskVerification,
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
       gitTaskManager,
+      deploymentManager,
     });
     await server.start();
     await bus.publish(
@@ -338,6 +365,7 @@ describe("core event stream", () => {
       taskVerification,
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
       gitTaskManager,
+      deploymentManager,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -386,6 +414,7 @@ describe("core event stream", () => {
       taskVerification,
       permissionBroker: new SqlitePermissionBroker({ database, bus }),
       gitTaskManager,
+      deploymentManager,
     });
     await server.start();
     const unauthorized = await fetch(
