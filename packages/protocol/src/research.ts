@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { visualRecommendationSchema } from "./references.js";
 
 export const sourceReferenceSchema = z.strictObject({
   id: z.string().min(1),
@@ -25,11 +26,6 @@ export const researchResultSchema = z.strictObject({
   sources: z.array(sourceReferenceSchema),
   images: z.array(z.never()),
   videos: z.array(z.never()),
-  visualRecommendation: z.strictObject({
-    display: z.literal(false),
-    score: z.literal(0),
-    reason: z.literal("Reference evaluation is deferred to Phase 7"),
-    preferredMode: z.literal("none"),
-  }),
+  visualRecommendation: visualRecommendationSchema,
 });
 export type ResearchResult = z.infer<typeof researchResultSchema>;

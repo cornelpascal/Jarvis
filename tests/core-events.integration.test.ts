@@ -287,6 +287,14 @@ describe("core event stream", () => {
         }
       });
     });
+    const referenceDisplay = new Promise<KnownJarvisEvent>((resolve) => {
+      const unsubscribe = bus.subscribe((event) => {
+        if (event.type === "reference.display.requested") {
+          unsubscribe();
+          resolve(event);
+        }
+      });
+    });
     const route = await fetch(
       `http://127.0.0.1:${String(port)}/commands/route`,
       {
@@ -308,6 +316,10 @@ describe("core event stream", () => {
     await expect(researchComplete).resolves.toMatchObject({
       type: "research.completed",
       payload: { sourceCount: 1 },
+    });
+    await expect(referenceDisplay).resolves.toMatchObject({
+      type: "reference.display.requested",
+      payload: { mode: "SOURCES" },
     });
   });
 });

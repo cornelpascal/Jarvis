@@ -42,6 +42,8 @@ Phase 5 treats routing as classification, never authorization. `/commands/route`
 
 Phase 6 gives the research provider only HTTPS access to the configured model/search API. It receives no shell, filesystem, browser-control, Codex, Git, system, or permission capability. All returned URLs must use HTTP(S), remain explicitly untrusted, and are never interpreted as commands. Missing citations invalidate a result. The API key stays in Core request headers and provider response bodies are not logged or forwarded. Research failures expose only bounded codes/messages.
 
+Phase 7 evaluates only query/answer metadata and source count; it cannot execute tools. Display events accept only strict item types and HTTP(S) URLs. A visual recommendation never changes provenance or trust, and a rendered source remains untrusted content. Reference windows open only from new live core events, not replay, preventing restart loops. Missing media providers degrade to cited source cards rather than guessed image/video URLs.
+
 ## Assets
 
 Protected assets include:

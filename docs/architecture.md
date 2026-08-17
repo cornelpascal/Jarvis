@@ -53,6 +53,12 @@ Research-route decisions start an asynchronous job and return the routing respon
 
 Every source is deduplicated, timestamped, and labeled `{ origin: "web", trusted: false }`. Core emits started/searching/source-found/completed/failed lifecycle events, persists the assistant answer with citation links, and drives the HUD through actual SEARCHING/RESEARCHING/error states. Images, videos, and the visual recommendation remain explicit empty/deferred values until Phase 7.
 
+## Phase 7 Smart References
+
+`SmartReferenceEvaluator` is an independent deterministic policy component. It scores physical/visual subjects, motion, explicit visual requests, and low-value abstract/version topics against `references.visual_threshold`. It emits its score, reason, and preferred media mode even when the display decision is false, making behavior testable and explainable.
+
+The cited research answer is published before reference evaluation begins. Accepted evaluations publish a display request asynchronously; the dashboard opens the Reference Deck only for a new live event and uses the persisted monitor placement. When no image/video discovery provider is configured, attributable source cards are the safe live fallback rather than invented media URLs.
+
 ## Architectural principles
 
 1. The Node/TypeScript core owns business rules and authoritative state.

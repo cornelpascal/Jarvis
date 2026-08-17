@@ -151,6 +151,16 @@ body {
   font-size: 12px;
   font-weight: 500;
 }
+.deck-grid a {
+  display: inline-block;
+  margin-top: 10px;
+  border: 1px solid rgb(69 220 255 / 25%);
+  padding: 6px 9px;
+  color: #67dff6;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+}
 .deck-grid pre {
   overflow: auto;
   white-space: pre-wrap;

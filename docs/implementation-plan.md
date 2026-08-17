@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 6 — DONE**
-Next phase: **Phase 7 — NOT_STARTED**
+Current phase: **Phase 7 — DONE**
+Next phase: **Phase 8 — NOT_STARTED**
 
 ## Status definitions
 
@@ -40,7 +40,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 4 — Alt+Space + voice                | DONE        | Windows activation and provider-based spoken conversation                         |
 | 5 — Orchestrator/tool router         | DONE        | Bounded, evaluated routing to conversation/research/project/coding/browser/system |
 | 6 — Web research                     | DONE        | Fresh structured research with sources and streamed events                        |
-| 7 — Smart References                 | NOT_STARTED | Independent visual-value evaluator and asynchronous rendering                     |
+| 7 — Smart References                 | DONE        | Independent visual-value evaluator and asynchronous rendering                     |
 | 8 — Browser Agent                    | NOT_STARTED | Isolated Playwright Chromium and typed browser actions                            |
 | 9 — Project Registry                 | NOT_STARTED | Configurable project discovery and metadata                                       |
 | 10 — Project index/retrieval         | NOT_STARTED | Deterministic layered local project search                                        |
@@ -141,12 +141,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 7 — Smart References
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Visual evaluator, `0.65` configurable threshold, image/video/source discovery interfaces, quality/dedup/safety, asynchronous Reference Deck rendering, explanation/score telemetry.
 - **Dependencies:** Phases 3 and 6; image/video provider interfaces.
 - **Acceptance:** Node.js LTS research shows sources without needless imagery; humanoid robot research recommends images/likely video; recursion avoids interruption; speech is not blocked by media retrieval.
 - **Tests:** Deterministic evaluator cases/boundaries, setting overrides, media dedup/safe URL, async race/cancellation, research → reference → display E2E with mocks.
-- **Known risks:** Subjective scoring, irrelevant/unsafe media, copyright/attribution, slow retrieval, late display after context changes.
+- **Evidence:** 44 unit/integration tests pass. Required Node.js LTS, humanoid robotics, recursion, and threshold fixtures verify independent display decisions and media-mode recommendations. The research integration proves answer completion precedes asynchronous evaluation/display, and the dashboard opens the configured deck only for live display events. Format/lint/typecheck/build and native smoke pass.
+- **Known limitations:** The current live adapter safely falls back to cited source cards because no independent image/video discovery provider is configured; evaluator output still requests `images`/`mixed` when appropriate. Image/video discovery, quality filtering, and cancellation on conversation-context replacement remain provider work. The heuristic baseline is explainable but will require broader evaluation data.
 
 ### Phase 8 — Browser Agent
 

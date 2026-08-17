@@ -27,7 +27,10 @@ import {
   type VoiceClientSignal,
 } from "@jarvis/protocol";
 import { RealtimeGatewayError, type RealtimeCallGateway } from "@jarvis/voice";
-import { ResearchProviderError } from "@jarvis/research";
+import {
+  ResearchProviderError,
+  SmartReferenceEvaluator,
+} from "@jarvis/research";
 import { IntentRouter } from "./orchestrator.js";
 
 const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -219,10 +222,15 @@ async function publishVoiceSignal(
         } as const;
         const decision = await publishRouteDecision(bus, router, request);
         if (decision.route === "research")
-          void executeResearch(bus, researchProvider, {
-            requestId: request.requestId,
-            query: request.text,
-          });
+          void executeResearch(
+            bus,
+            researchProvider,
+            {
+              requestId: request.requestId,
+              query: request.text,
+            },
+            0.65,
+          );
       }
   }
 }
@@ -243,6 +251,7 @@ async function executeResearch(
   bus: LocalEventBus,
   provider: ResearchProvider,
   request: ResearchRequest,
+  visualThreshold: number,
 ): Promise<void> {
   await bus.publish(bus.create("research.started", "core.research", request));
   await bus.publish(
@@ -286,6 +295,14 @@ async function executeResearch(
         sourceCount: result.sources.length,
       }),
     );
+    void evaluateAndDisplayReferences(
+      bus,
+      new SmartReferenceEvaluator(),
+      request,
+      result.answer,
+      result.sources,
+      visualThreshold,
+    );
     await bus.publish(
       bus.create("jarvis.state.changed", "core.research", { state: "IDLE" }),
     );
@@ -313,6 +330,49 @@ async function executeResearch(
       }),
     );
   }
+}
+
+async function evaluateAndDisplayReferences(
+  bus: LocalEventBus,
+  evaluator: SmartReferenceEvaluator,
+  request: ResearchRequest,
+  answer: string,
+  sources: Awaited<ReturnType<ResearchProvider["research"]>>["sources"],
+  threshold: number,
+): Promise<void> {
+  await bus.publish(
+    bus.create("reference.evaluating", "core.references", {
+      requestId: request.requestId,
+      threshold,
+    }),
+    { durable: false },
+  );
+  const recommendation = evaluator.evaluate({
+    requestId: request.requestId,
+    query: request.query,
+    answer,
+    sourceCount: sources.length,
+    threshold,
+  });
+  await bus.publish(
+    bus.create("reference.evaluated", "core.references", {
+      requestId: request.requestId,
+      ...recommendation,
+    }),
+  );
+  if (!recommendation.display) return;
+  await bus.publish(
+    bus.create("reference.display.requested", "core.references", {
+      mode: "SOURCES",
+      title: `SMART REFERENCES // ${request.query}`,
+      items: sources.map((source) => ({
+        id: source.id,
+        type: "source" as const,
+        title: source.title,
+        uri: source.url,
+      })),
+    }),
+  );
 }
 
 function sendStreamMessage(
@@ -456,10 +516,15 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             routeRequest,
           );
           if (decision.route === "research")
-            void executeResearch(options.bus, options.researchProvider, {
-              requestId: routeRequest.requestId,
-              query: routeRequest.text,
-            });
+            void executeResearch(
+              options.bus,
+              options.researchProvider,
+              {
+                requestId: routeRequest.requestId,
+                query: routeRequest.text,
+              },
+              options.config.references.visual_threshold,
+            );
           return sendJson(response, 200, decision);
         }
         const signal = voiceClientSignalSchema.parse(

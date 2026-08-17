@@ -63,6 +63,11 @@ export function ReferenceDeck() {
                 <div>
                   <small>{item.type.toUpperCase()}</small>
                   <h2>{item.title}</h2>
+                  {item.uri && item.type !== "image" ? (
+                    <a href={item.uri} rel="noreferrer" target="_blank">
+                      OPEN REFERENCE
+                    </a>
+                  ) : null}
                   {item.content ? <pre>{item.content}</pre> : null}
                 </div>
               </article>

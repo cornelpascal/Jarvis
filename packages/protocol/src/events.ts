@@ -219,6 +219,17 @@ export const eventPayloadSchemas = {
       }),
     ),
   }),
+  "reference.evaluating": z.strictObject({
+    requestId: z.uuid(),
+    threshold: z.number().min(0).max(1),
+  }),
+  "reference.evaluated": z.strictObject({
+    requestId: z.uuid(),
+    display: z.boolean(),
+    score: z.number().min(0).max(1),
+    reason: z.string().min(1),
+    preferredMode: z.enum(["none", "sources", "images", "video", "mixed"]),
+  }),
   "research.started": z.strictObject({
     requestId: z.uuid(),
     query: z.string().min(1),

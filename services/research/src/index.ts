@@ -206,3 +206,5 @@ export class OpenAiResearchProvider implements ResearchProvider {
     return parseResearchResponse(await response.json(), request.requestId);
   }
 }
+
+export { SmartReferenceEvaluator } from "./reference-evaluator.js";

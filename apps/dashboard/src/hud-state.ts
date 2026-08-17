@@ -148,6 +148,21 @@ export function reduceHudEvent(
           `Research failed: ${event.payload.code}`,
         ),
       };
+    case "reference.evaluating":
+      return {
+        ...state,
+        activity: appendActivity(state, "Evaluating visual references"),
+      };
+    case "reference.evaluated":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          event.payload.display
+            ? `Visual references recommended (${String(Math.round(event.payload.score * 100))}%)`
+            : "Visual references not needed",
+        ),
+      };
     case "conversation.message.added":
       return {
         ...state,

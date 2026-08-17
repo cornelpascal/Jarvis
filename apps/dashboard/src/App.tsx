@@ -100,6 +100,20 @@ export function App() {
       onEvent: (event, replayed) => {
         dispatch(event);
         setEvents((current) => [{ event, replayed }, ...current].slice(0, 100));
+        if (
+          !replayed &&
+          event.type === "reference.display.requested" &&
+          event.payload.items.length > 0
+        ) {
+          const provider = createDisplayProvider();
+          void provider.listMonitors().then(async (monitors) => {
+            const placement = resolvePlacement(
+              monitors,
+              loadDisplayPlacement(),
+            );
+            await provider.openReferenceDeck(placement?.referenceMonitorId);
+          });
+        }
       },
       onError: (cause) => setError(cause.message),
     });
