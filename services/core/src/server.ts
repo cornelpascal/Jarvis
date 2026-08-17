@@ -57,6 +57,10 @@ import {
   systemActionSchema,
   screenshotRequestSchema,
   type ScreenshotProvider,
+  rememberRequestSchema,
+  memorySearchRequestSchema,
+  forgetMemoryRequestSchema,
+  type MemoryProvider,
   type WorktreeManager,
   type VoiceClientSignal,
 } from "@jarvis/protocol";
@@ -68,6 +72,7 @@ import {
 import { IntentRouter } from "./orchestrator.js";
 import { BrowserAgentError } from "@jarvis/browser";
 import { ProjectRegistryError } from "@jarvis/projects";
+import { MemoryPolicyError } from "@jarvis/memory";
 
 const MAX_BUFFERED_BYTES = 512 * 1024;
 const SUBSCRIBE_TIMEOUT_MS = 5_000;
@@ -93,6 +98,7 @@ export interface CoreServerOptions {
   deploymentManager: DeploymentManagerProvider;
   systemControlProvider: SystemControlProvider;
   screenshotProvider: ScreenshotProvider;
+  memoryProvider: MemoryProvider;
 }
 
 export interface CoreServer {
@@ -1183,6 +1189,9 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/deployment/execute" ||
         request.url === "/system/action" ||
         request.url === "/context/capture" ||
+        request.url === "/memory/remember" ||
+        request.url === "/memory/search" ||
+        request.url === "/memory/forget" ||
         /^\/deployment\/proposals\/[^/]+\/save$/.test(request.url ?? "") ||
         /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
@@ -1789,6 +1798,89 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             });
           }
         }
+        if (request.url === "/memory/remember") {
+          const input = rememberRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "memory.write",
+                resource: `memory:${input.scope}`,
+                ...(input.projectId ? { projectId: input.projectId } : {}),
+                reason: "Store an explicit user-requested memory",
+                arguments: { scope: input.scope },
+                origin: input.provenance.origin,
+                trusted: input.provenance.trusted,
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          return sendJson(
+            response,
+            201,
+            await options.memoryProvider.remember(input),
+          );
+        }
+        if (request.url === "/memory/search") {
+          const input = memorySearchRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "memory.read",
+                resource: `memory:${input.scopes.join(",")}`,
+                ...(input.projectId ? { projectId: input.projectId } : {}),
+                reason: "Retrieve relevant memory within explicit scopes",
+                arguments: {
+                  scopes: input.scopes,
+                  hasQuery: Boolean(input.query),
+                },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          return sendJson(
+            response,
+            200,
+            await options.memoryProvider.search(input),
+          );
+        }
+        if (request.url === "/memory/forget") {
+          const input = forgetMemoryRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "memory.write",
+                resource: `memory:${input.memoryId}`,
+                ...(input.projectId ? { projectId: input.projectId } : {}),
+                reason: "Delete an explicitly selected memory",
+                arguments: { memoryId: input.memoryId },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
+          const forgotten = await options.memoryProvider.forget(input);
+          return forgotten
+            ? sendJson(response, 200, { forgotten: true })
+            : sendJson(response, 404, {
+                code: "MEMORY_NOT_FOUND",
+                message: "Memory not found in the requested scope",
+                retryable: false,
+              });
+        }
         if (
           /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
             request.url ?? "",
@@ -1941,19 +2033,29 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             message: cause.message,
             retryable: false,
           });
+        if (cause instanceof MemoryPolicyError)
+          return sendJson(response, 400, {
+            code: cause.code,
+            message: cause.message,
+            retryable: false,
+          });
         return sendJson(response, 400, {
           code:
             request.url === "/commands/route"
               ? "INVALID_ROUTE_REQUEST"
               : request.url === "/browser/action"
                 ? "INVALID_BROWSER_REQUEST"
-                : "INVALID_VOICE_REQUEST",
+                : request.url?.startsWith("/memory/")
+                  ? "INVALID_MEMORY_REQUEST"
+                  : "INVALID_VOICE_REQUEST",
           message:
             request.url === "/commands/route"
               ? "Route request was malformed"
               : request.url === "/browser/action"
                 ? "Browser request was malformed"
-                : "Voice request was malformed",
+                : request.url?.startsWith("/memory/")
+                  ? "Memory request was malformed"
+                  : "Voice request was malformed",
           retryable: false,
         });
       }

@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 19 — DONE**
-Next phase: **Phase 20 — NOT_STARTED**
+Current phase: **Phase 20 — DONE**
+Next phase: **Phase 21 — NOT_STARTED**
 
 ## Status definitions
 
@@ -53,7 +53,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 17 — Deployment config auto-creation | DONE        | Missing-config analysis/proposal/approval/save workflow                           |
 | 18 — Windows system tools            | DONE        | Allow-listed least-privilege control and telemetry adapters                       |
 | 19 — Screenshot context              | DONE        | Explicit active-window/display capture as conversation context                    |
-| 20 — Memory                          | NOT_STARTED | Scoped explicit memories and relevant retrieval                                   |
+| 20 — Memory                          | DONE        | Scoped explicit memories and relevant retrieval                                   |
 | 21 — Notifications/background work   | NOT_STARTED | Concurrent jobs, non-blocking conversation, rate-aware notifications              |
 | 22 — Wake word                       | NOT_STARTED | Local wake-word activation after voice stability                                  |
 | 23 — Windows packaging               | NOT_STARTED | Installer, startup, crash recovery, migration, release documentation              |
@@ -278,11 +278,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 20 — Memory
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Ephemeral/session/project/global repositories and policy, explicit remember/forget, provenance/timestamps/supersession, recall gate, relevant retrieval, inspection/deletion UI.
 - **Dependencies:** Phases 5, 9–10, 14; database migrations.
 - **Acceptance:** Scopes remain isolated; explicit facts persist appropriately; project memories retrieve only when relevant; ordinary conversation is not indiscriminately stored; web/agent content is not silently promoted.
 - **Tests:** Scope/isolation, recall relevance, explicit consent, conflict/supersession, deletion, provenance/taint, secret rejection, migration and restart.
+- **Evidence:** 80 unit/integration tests pass. A shared strict memory contract, migration-backed durable repository, process-only ephemeral repository, deterministic relevant retrieval, same-scope supersession, scoped deletion, Core permission mediation, lifecycle events, and a dashboard inspection/deletion center are implemented. Persistent writes require trusted user provenance and reject likely private keys, tokens, passwords, or credential assignments; event payloads contain no memory content.
+- **Known limitations:** Retrieval is deterministic lexical ranking over at most 500 active records; semantic retrieval is deliberately deferred. Session-memory inspection is available through its scoped API but not shown in the global/project Memory Center without that conversation's session identifier. Memory recall is exposed as a tool/API and route but a future provider-specific conversation planner must choose when to inject returned records into a model prompt.
 - **Known risks:** Privacy creep, incorrect facts, cross-project leakage, prompt growth, difficult deletion from derived indexes.
 
 ### Phase 21 — Notifications / background work

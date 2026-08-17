@@ -169,4 +169,15 @@ export const migrations: readonly Migration[] = [
       "CREATE INDEX IF NOT EXISTS idx_deployment_proposals_project ON deployment_proposals(project_id, environment)",
     ],
   },
+  {
+    version: 7,
+    name: "memory_lifecycle",
+    statements: [
+      "ALTER TABLE memories ADD COLUMN confidence REAL NOT NULL DEFAULT 1",
+      "ALTER TABLE memories ADD COLUMN supersedes_id TEXT",
+      "ALTER TABLE memories ADD COLUMN superseded_by TEXT",
+      "ALTER TABLE memories ADD COLUMN deleted_at TEXT",
+      "CREATE INDEX IF NOT EXISTS idx_memories_scope_active ON memories(scope, scope_id, deleted_at, superseded_by)",
+    ],
+  },
 ];

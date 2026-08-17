@@ -529,6 +529,27 @@ export function reduceHudEvent(
           `Image context: ${event.payload.activeApplication ?? event.payload.mode}`,
         ),
       };
+    case "memory.saved":
+      return {
+        ...state,
+        activity: appendActivity(state, `${event.payload.scope} memory saved`),
+      };
+    case "memory.recalled":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `${String(event.payload.count)} relevant memories recalled`,
+        ),
+      };
+    case "memory.forgotten":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `${event.payload.scope} memory deleted`,
+        ),
+      };
     case "approval.requested":
       return {
         ...state,

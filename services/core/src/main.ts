@@ -11,6 +11,7 @@ import { openJarvisDatabase } from "@jarvis/database";
 import { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
 import { SqlitePermissionBroker } from "@jarvis/permissions";
+import { SqliteMemoryService } from "@jarvis/memory";
 import { SqliteDeploymentManager } from "@jarvis/deployment";
 import {
   WindowsScreenshotProvider,
@@ -75,6 +76,7 @@ const systemControlProvider = new WindowsSystemControlProvider();
 const screenshotProvider = new WindowsScreenshotProvider({
   root: resolve(paths.root, "screenshots"),
 });
+const memoryProvider = new SqliteMemoryService({ database, bus });
 const server = createCoreServer({
   config,
   environment,
@@ -95,6 +97,7 @@ const server = createCoreServer({
   deploymentManager,
   systemControlProvider,
   screenshotProvider,
+  memoryProvider,
 });
 
 await server.start();

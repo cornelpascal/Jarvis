@@ -326,6 +326,9 @@ The developer log viewer is separate from the conversation. The UI shows user-me
 - Screenshot capture is mediated as `system.capture`, limited to 10 MiB PNG, and deletes its temporary file in a `finally` path.
 - Pixel bytes are never written to events, audit records, normal logs, or SQLite; only bounded attachment metadata is durable.
 - The initiating authenticated client receives the ephemeral image and must make any later provider egress explicit and policy-bound.
+- Persistent memory creation accepts only trusted user provenance; web/project/agent/system content cannot be promoted silently.
+- Likely keys, tokens, passwords, and private keys are rejected, and memory event payloads contain no content.
+- Scope queries require exact session/project identifiers and never fall back to broader records when context is missing.
 
 ## Supply-chain and licensing controls
 

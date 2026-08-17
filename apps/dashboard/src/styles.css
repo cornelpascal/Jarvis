@@ -707,6 +707,47 @@ dd {
   background: rgb(2 9 12 / 97%);
   box-shadow: 0 0 50px #000;
 }
+
+.memory-center {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: auto;
+  border: 1px solid rgba(75, 220, 255, 0.45);
+  background: rgba(4, 11, 17, 0.98);
+  box-shadow: 0 0 50px rgba(0, 190, 255, 0.16);
+  padding: 18px;
+}
+
+.memory-policy {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.memory-list {
+  display: grid;
+  gap: 10px;
+}
+
+.memory-list article {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 16px;
+  border-left: 2px solid var(--cyan);
+  background: rgba(67, 212, 255, 0.06);
+  padding: 12px;
+}
+
+.memory-list small,
+.memory-list p {
+  grid-column: 1;
+  margin: 0;
+}
+
+.memory-list button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
 .event-list {
   height: calc(100% - 42px);
   overflow: auto;

@@ -251,6 +251,8 @@ Coding, indexing, verification, Git, and deployment use the same job pattern and
 
 The orchestrator resolves conversation context and selects a domain route: conversation, research, project, coding, browser, Git, deployment, system, reference, or memory.
 
+Memory is an explicit provider boundary rather than an automatic transcript sink. `SqliteMemoryService` keeps ephemeral records in process memory and stores session/project/global records in SQLite with provenance, confidence, timestamps, supersession, and soft-deletion state. Retrieval receives explicit allowed scopes plus current session/project identity and cannot widen them. Model-facing conversation code must opt into the returned records; memory events never carry content.
+
 Routing uses:
 
 1. deterministic constraints and active context (for example, an explicit task ID);

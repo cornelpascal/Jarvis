@@ -20,6 +20,7 @@ import {
   revealAndFocusDashboard,
 } from "./hotkey-provider";
 import { OpenAiWebRtcVoiceProvider } from "./voice-provider";
+import { MemoryCenter } from "./MemoryCenter";
 import "./styles.css";
 
 function percent(value: number | undefined): string {
@@ -42,6 +43,7 @@ export function App() {
   const [error, setError] = useState<string>();
   const [showInspector, setShowInspector] = useState(false);
   const [showDisplays, setShowDisplays] = useState(false);
+  const [showMemories, setShowMemories] = useState(false);
   const [displayCount, setDisplayCount] = useState(0);
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -568,6 +570,9 @@ export function App() {
           <button onClick={() => setShowDisplays(true)} type="button">
             DISPLAYS
           </button>
+          <button onClick={() => setShowMemories(true)} type="button">
+            MEMORY
+          </button>
           <button
             onClick={() => setShowInspector((shown) => !shown)}
             type="button"
@@ -579,6 +584,15 @@ export function App() {
 
       {showDisplays ? (
         <DisplaySettings onClose={() => setShowDisplays(false)} />
+      ) : null}
+
+      {showMemories ? (
+        <MemoryCenter
+          {...(hud.selectedProjectId
+            ? { projectId: hud.selectedProjectId }
+            : {})}
+          onClose={() => setShowMemories(false)}
+        />
       ) : null}
 
       {showInspector ? (

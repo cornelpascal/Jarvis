@@ -31,6 +31,7 @@ import type {
   DeploymentManagerProvider,
   SystemControlProvider,
   ScreenshotProvider,
+  MemoryProvider,
   WorktreeManager,
 } from "../packages/protocol/src/index.js";
 import type { RealtimeCallGateway } from "../services/voice/src/index.js";
@@ -267,6 +268,26 @@ const screenshotProvider: ScreenshotProvider = {
       retention: "ephemeral",
     }),
 };
+const memoryProvider: MemoryProvider = {
+  remember: (request) =>
+    Promise.resolve({
+      id: "25c7137c-4079-4d64-9247-4f147394cf72",
+      scope: request.scope,
+      ...(request.scope === "PROJECT" && request.projectId
+        ? { scopeId: request.projectId }
+        : request.sessionId
+          ? { scopeId: request.sessionId }
+          : {}),
+      content: request.content,
+      provenance: request.provenance,
+      confidence: request.confidence,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+  search: (request) =>
+    Promise.resolve({ requestId: request.requestId, memories: [] }),
+  forget: () => Promise.resolve(false),
+};
 
 function testConfig(port: number): JarvisConfig {
   return {
@@ -358,6 +379,7 @@ describe("core event stream", () => {
       deploymentManager,
       systemControlProvider,
       screenshotProvider,
+      memoryProvider,
     });
     await server.start();
     await bus.publish(
@@ -421,6 +443,7 @@ describe("core event stream", () => {
       deploymentManager,
       systemControlProvider,
       screenshotProvider,
+      memoryProvider,
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -472,6 +495,7 @@ describe("core event stream", () => {
       deploymentManager,
       systemControlProvider,
       screenshotProvider,
+      memoryProvider,
     });
     await server.start();
     const unauthorized = await fetch(

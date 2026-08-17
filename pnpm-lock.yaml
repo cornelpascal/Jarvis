@@ -189,6 +189,9 @@ importers:
       '@jarvis/logging':
         specifier: workspace:*
         version: link:../../packages/logging
+      '@jarvis/memory':
+        specifier: workspace:*
+        version: link:../memory
       '@jarvis/os-abstractions':
         specifier: workspace:*
         version: link:../../packages/os-abstractions
@@ -225,6 +228,18 @@ importers:
         version: 8.18.1
 
   services/deployment:
+    dependencies:
+      '@jarvis/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@jarvis/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@jarvis/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+
+  services/memory:
     dependencies:
       '@jarvis/database':
         specifier: workspace:*

@@ -412,6 +412,22 @@ export const eventPayloadSchemas = {
     capturedAt: z.iso.datetime(),
     retention: z.literal("ephemeral"),
   }),
+  "memory.saved": z.strictObject({
+    requestId: z.uuid(),
+    memoryId: z.uuid(),
+    scope: z.enum(["EPHEMERAL", "SESSION", "PROJECT", "GLOBAL"]),
+    scopeId: z.string().min(1).optional(),
+  }),
+  "memory.recalled": z.strictObject({
+    requestId: z.uuid(),
+    count: z.int().nonnegative(),
+    scopes: z.array(z.enum(["EPHEMERAL", "SESSION", "PROJECT", "GLOBAL"])),
+  }),
+  "memory.forgotten": z.strictObject({
+    requestId: z.uuid(),
+    memoryId: z.uuid(),
+    scope: z.enum(["EPHEMERAL", "SESSION", "PROJECT", "GLOBAL"]),
+  }),
   "approval.requested": z.strictObject({
     approvalId: z.string().min(1),
     action: z.string().min(1),
