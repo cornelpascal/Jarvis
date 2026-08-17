@@ -16,6 +16,7 @@
     "@jarvis/database": "workspace:*",
     "@jarvis/event-bus": "workspace:*",
     "@jarvis/logging": "workspace:*",
+    "@jarvis/permissions": "workspace:*",
     "@jarvis/protocol": "workspace:*",
     "@jarvis/projects": "workspace:*",
     "@jarvis/research": "workspace:*",

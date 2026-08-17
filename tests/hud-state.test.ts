@@ -96,6 +96,7 @@ describe("HUD state projection", () => {
           action: "git.push",
           reason: "Publish branch",
           riskLevel: 3,
+          resource: "git:branch",
         },
         4,
       ),

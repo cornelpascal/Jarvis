@@ -6,6 +6,7 @@ import {
   type JarvisDatabase,
 } from "../packages/database/src/index.js";
 import { LocalEventBus } from "../packages/event-bus/src/index.js";
+import { SqlitePermissionBroker } from "../packages/permissions/src/index.js";
 import {
   EVENT_SCHEMA_VERSION,
   PROTOCOL_VERSION,
@@ -251,6 +252,7 @@ describe("core event stream", () => {
       codingAgentProvider,
       worktreeManager,
       taskVerification,
+      permissionBroker: new SqlitePermissionBroker({ database, bus }),
     });
     await server.start();
     await bus.publish(
@@ -309,6 +311,7 @@ describe("core event stream", () => {
       codingAgentProvider,
       worktreeManager,
       taskVerification,
+      permissionBroker: new SqlitePermissionBroker({ database, bus }),
     });
     await server.start();
     const client = connect(port, "valid-token");
@@ -327,6 +330,19 @@ describe("core event stream", () => {
     const port = 46_000 + Math.floor(Math.random() * 500);
     database = openJarvisDatabase(":memory:");
     const bus = new LocalEventBus();
+    const now = new Date().toISOString();
+    database.connection
+      .prepare(
+        "INSERT INTO projects(id,name,path,enabled,created_at,updated_at) VALUES (?,?,?,?,?,?)",
+      )
+      .run(
+        "project-http",
+        "HTTP Fixture",
+        "C:\\fixture-repository",
+        1,
+        now,
+        now,
+      );
     server = createCoreServer({
       config: testConfig(port),
       environment: "test",
@@ -342,6 +358,7 @@ describe("core event stream", () => {
       codingAgentProvider,
       worktreeManager,
       taskVerification,
+      permissionBroker: new SqlitePermissionBroker({ database, bus }),
     });
     await server.start();
     const unauthorized = await fetch(
@@ -472,6 +489,68 @@ describe("core event stream", () => {
       type: "browser.action.completed",
       payload: { action: "open_url", tabId: "tab-test" },
     });
+
+    const clickBody = JSON.stringify({
+      action: "click",
+      requestId: "7a4bc067-290d-4311-aead-40e89f322788",
+      tabId: "tab-test",
+      selector: "button[type=submit]",
+    });
+    const pendingClick = await fetch(
+      `http://127.0.0.1:${String(port)}/browser/action`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          origin: "http://127.0.0.1:1420",
+        },
+        body: clickBody,
+      },
+    );
+    expect(pendingClick.status).toBe(202);
+    const pending = (await pendingClick.json()) as { approvalId: string };
+    const resolvedClick = await fetch(
+      `http://127.0.0.1:${String(port)}/approvals/${pending.approvalId}/resolve`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          origin: "http://127.0.0.1:1420",
+        },
+        body: JSON.stringify({ approved: true }),
+      },
+    );
+    const resolution = (await resolvedClick.json()) as { receiptId: string };
+    const approvedClick = await fetch(
+      `http://127.0.0.1:${String(port)}/browser/action`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          "x-jarvis-permission-receipt": resolution.receiptId,
+          origin: "http://127.0.0.1:1420",
+        },
+        body: clickBody,
+      },
+    );
+    expect(approvedClick.status).toBe(200);
+    const replayedReceipt = await fetch(
+      `http://127.0.0.1:${String(port)}/browser/action`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-jarvis-session-token": "voice-token",
+          "x-jarvis-permission-receipt": resolution.receiptId,
+          origin: "http://127.0.0.1:1420",
+        },
+        body: clickBody,
+      },
+    );
+    expect(replayedReceipt.status).toBe(403);
 
     const codingTask = await fetch(
       `http://127.0.0.1:${String(port)}/codex/tasks`,

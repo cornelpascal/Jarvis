@@ -10,6 +10,12 @@ import type { JarvisDatabase } from "@jarvis/database";
 import type { LocalEventBus } from "@jarvis/event-bus";
 import { Logger } from "@jarvis/logging";
 import {
+  approvalResolutionSchema,
+  type PermissionAction,
+  type PermissionBroker,
+  type PermissionRequest,
+} from "@jarvis/permissions";
+import {
   EVENT_SCHEMA_VERSION,
   MAX_EVENT_BYTES,
   MAX_REPLAY_LIMIT,
@@ -71,6 +77,7 @@ export interface CoreServerOptions {
   codingAgentProvider: CodingAgentProvider;
   worktreeManager: WorktreeManager;
   taskVerification: TaskVerificationProvider;
+  permissionBroker: PermissionBroker;
 }
 
 export interface CoreServer {
@@ -101,6 +108,52 @@ function tokenMatches(actual: string | undefined, expected: string): boolean {
   const left = Buffer.from(actual);
   const right = Buffer.from(expected);
   return left.length === right.length && timingSafeEqual(left, right);
+}
+
+function permissionReceipt(request: IncomingMessage): string | undefined {
+  const value = request.headers["x-jarvis-permission-receipt"];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+async function requirePermission(
+  response: ServerResponse,
+  broker: PermissionBroker,
+  input: PermissionRequest,
+  receiptId?: string,
+): Promise<boolean> {
+  const decision = await broker.authorize(input, receiptId);
+  if (decision.state === "APPROVED") return true;
+  sendJson(response, decision.state === "PENDING" ? 202 : 403, {
+    code:
+      decision.state === "PENDING" ? "APPROVAL_REQUIRED" : "PERMISSION_DENIED",
+    approvalId: decision.approvalId,
+    riskLevel: decision.riskLevel,
+    ...(decision.state === "DENIED" ? { message: decision.reason } : {}),
+    retryable: decision.state === "PENDING",
+  });
+  return false;
+}
+
+function permissionRequest(input: {
+  action: PermissionAction;
+  resource: string;
+  reason: string;
+  projectId?: string;
+  arguments?: Record<string, unknown>;
+  origin?: "user" | "project" | "web" | "system" | "agent";
+  trusted?: boolean;
+}): PermissionRequest {
+  return {
+    action: input.action,
+    resource: input.resource,
+    reason: input.reason,
+    arguments: input.arguments ?? {},
+    provenance: {
+      origin: input.origin ?? "user",
+      trusted: input.trusted ?? true,
+    },
+    ...(input.projectId ? { projectId: input.projectId } : {}),
+  };
 }
 
 function protocolToken(request: IncomingMessage): string | undefined {
@@ -165,6 +218,7 @@ async function publishVoiceSignal(
   signal: VoiceClientSignal,
   router: IntentRouter,
   researchProvider: ResearchProvider,
+  permissions: PermissionBroker,
 ): Promise<void> {
   const provider = "openai-realtime";
   switch (signal.type) {
@@ -255,6 +309,7 @@ async function publishVoiceSignal(
               query: request.text,
             },
             0.65,
+            permissions,
           );
       }
   }
@@ -277,6 +332,7 @@ async function executeResearch(
   provider: ResearchProvider,
   request: ResearchRequest,
   visualThreshold: number,
+  permissions: PermissionBroker,
 ): Promise<void> {
   await bus.publish(bus.create("research.started", "core.research", request));
   await bus.publish(
@@ -293,6 +349,16 @@ async function executeResearch(
     { durable: false },
   );
   try {
+    const permission = await permissions.authorize(
+      permissionRequest({
+        action: "research.search",
+        resource: "public-web",
+        reason: "Research current public information",
+        arguments: { query: request.query },
+      }),
+    );
+    if (permission.state !== "APPROVED")
+      throw new Error("Research permission was denied");
     const result = await provider.research(request, {
       signal: new AbortController().signal,
       deadline: new Date(Date.now() + 30_000),
@@ -327,6 +393,7 @@ async function executeResearch(
       result.answer,
       result.sources,
       visualThreshold,
+      permissions,
     );
     await bus.publish(
       bus.create("jarvis.state.changed", "core.research", { state: "IDLE" }),
@@ -426,6 +493,7 @@ async function evaluateAndDisplayReferences(
   answer: string,
   sources: Awaited<ReturnType<ResearchProvider["research"]>>["sources"],
   threshold: number,
+  permissions: PermissionBroker,
 ): Promise<void> {
   await bus.publish(
     bus.create("reference.evaluating", "core.references", {
@@ -448,6 +516,17 @@ async function evaluateAndDisplayReferences(
     }),
   );
   if (!recommendation.display) return;
+  const permission = await permissions.authorize(
+    permissionRequest({
+      action: "reference.display",
+      resource: `research:${request.requestId}`,
+      reason: "Display Smart References selected from untrusted web results",
+      arguments: { sourceCount: sources.length },
+      origin: "web",
+      trusted: false,
+    }),
+  );
+  if (permission.state !== "APPROVED") return;
   await bus.publish(
     bus.create("reference.display.requested", "core.references", {
       mode: "SOURCES",
@@ -466,9 +545,20 @@ async function executeProjectSearch(
   bus: LocalEventBus,
   provider: ProjectSearchProvider,
   request: RouteRequest,
+  permissions: PermissionBroker,
 ): Promise<void> {
   if (!request.activeProjectId) return;
   try {
+    const permission = await permissions.authorize(
+      permissionRequest({
+        action: "project.read",
+        resource: `project:${request.activeProjectId}`,
+        projectId: request.activeProjectId,
+        reason: "Search the selected local project",
+        arguments: { query: request.text },
+      }),
+    );
+    if (permission.state !== "APPROVED") return;
     const result = await provider.search({
       requestId: request.requestId,
       projectId: request.activeProjectId,
@@ -502,6 +592,7 @@ async function publishCodingAgentEvent(
   bus: LocalEventBus,
   provider: CodingAgentProvider,
   verification: TaskVerificationProvider,
+  permissions: PermissionBroker,
   event: CodingAgentEvent,
 ): Promise<void> {
   const task = await provider.getStatus(event.taskId);
@@ -558,19 +649,24 @@ async function publishCodingAgentEvent(
       }),
     );
     if (task.state === "READY_FOR_REVIEW")
-      void verifyTaskAndDisplay(bus, verification, task.id, task.title).catch(
-        async (cause: unknown) => {
-          await bus.publish(
-            bus.create("codex.failed", "core.verification", {
-              taskId: task.id,
-              projectId: task.projectId,
-              code: "VERIFICATION_FAILED",
-              message:
-                cause instanceof Error ? cause.message : "Verification failed",
-            }),
-          );
-        },
-      );
+      void verifyTaskAndDisplay(
+        bus,
+        verification,
+        permissions,
+        task.id,
+        task.projectId,
+        task.title,
+      ).catch(async (cause: unknown) => {
+        await bus.publish(
+          bus.create("codex.failed", "core.verification", {
+            taskId: task.id,
+            projectId: task.projectId,
+            code: "VERIFICATION_FAILED",
+            message:
+              cause instanceof Error ? cause.message : "Verification failed",
+          }),
+        );
+      });
   }
   if (event.type === "error")
     await bus.publish(
@@ -586,9 +682,30 @@ async function publishCodingAgentEvent(
 async function verifyTaskAndDisplay(
   bus: LocalEventBus,
   verification: TaskVerificationProvider,
+  permissions: PermissionBroker,
   taskId: string,
+  projectId: string,
   title: string,
+  permissionAlreadyGranted = false,
 ) {
+  if (!permissionAlreadyGranted) {
+    const decision = await permissions.authorize(
+      permissionRequest({
+        action: "codex.task.verify",
+        resource: `task:${taskId}`,
+        projectId,
+        reason: "Run evidence-backed checks in the isolated task worktree",
+        arguments: { taskId },
+        origin: "agent",
+      }),
+    );
+    if (decision.state !== "APPROVED")
+      throw new Error(
+        decision.state === "DENIED"
+          ? decision.reason
+          : "Verification requires approval",
+      );
+  }
   const report = await verification.verify(taskId);
   await bus.publish(
     bus.create("reference.display.requested", "core.verification", {
@@ -689,7 +806,8 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         });
       response.writeHead(204, {
         "access-control-allow-methods": "GET, POST, OPTIONS",
-        "access-control-allow-headers": "content-type, x-jarvis-session-token",
+        "access-control-allow-headers":
+          "content-type, x-jarvis-session-token, x-jarvis-permission-receipt",
         "access-control-max-age": "600",
       });
       response.end();
@@ -762,7 +880,22 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
       const projectId = segments.at(1);
       if (!projectId) throw new Error("Project identifier is missing");
       try {
-        options.projectRegistry.remove(decodeURIComponent(projectId));
+        const decodedProjectId = decodeURIComponent(projectId);
+        if (
+          !(await requirePermission(
+            response,
+            options.permissionBroker,
+            permissionRequest({
+              action: "project.configure",
+              resource: `project:${decodedProjectId}`,
+              projectId: decodedProjectId,
+              reason: "Remove a project from the JARVIS registry",
+            }),
+            permissionReceipt(request),
+          ))
+        )
+          return;
+        options.projectRegistry.remove(decodedProjectId);
         response.writeHead(204, { "cache-control": "no-store" });
         response.end();
         return;
@@ -787,6 +920,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         request.url === "/projects/index" ||
         request.url === "/projects/search" ||
         request.url === "/codex/tasks" ||
+        /^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "") ||
         /^\/codex\/tasks\/[^/]+\/(?:start|resume|pause|cancel|message|diff|verify)$/.test(
           request.url ?? "",
         ) ||
@@ -852,19 +986,56 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
                 query: routeRequest.text,
               },
               options.config.references.visual_threshold,
+              options.permissionBroker,
             );
           if (decision.route === "project" && routeRequest.activeProjectId)
             void executeProjectSearch(
               options.bus,
               options.projectSearch,
               routeRequest,
+              options.permissionBroker,
             );
           return sendJson(response, 200, decision);
+        }
+        if (/^\/approvals\/[^/]+\/resolve$/.test(request.url ?? "")) {
+          const approvalId = request.url?.split("/").at(2);
+          if (!approvalId) throw new Error("Approval identifier is missing");
+          const resolution = approvalResolutionSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          return sendJson(
+            response,
+            200,
+            await options.permissionBroker.resolve(
+              decodeURIComponent(approvalId),
+              resolution.approved,
+            ),
+          );
         }
         if (request.url === "/browser/action") {
           const action = browserActionSchema.parse(
             JSON.parse(await readBody(request)) as unknown,
           );
+          const interaction = action.action === "click";
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: interaction ? "browser.interact" : "browser.read",
+                resource:
+                  "url" in action
+                    ? `url:${action.url}`
+                    : `browser-tab:${"tabId" in action ? (action.tabId ?? "active") : "active"}`,
+                reason: interaction
+                  ? "Interact with an element in the isolated browser"
+                  : "Read or navigate public web content",
+                arguments: action,
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           return sendJson(
             response,
             200,
@@ -875,12 +1046,40 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             ),
           );
         }
-        if (request.url === "/projects/scan")
+        if (request.url === "/projects/scan") {
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "project.read",
+                resource: "configured-project-roots",
+                reason: "Scan configured roots for local projects",
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           return sendJson(response, 200, await options.projectRegistry.scan());
+        }
         if (request.url === "/projects/register") {
           const input = projectRegisterRequestSchema.parse(
             JSON.parse(await readBody(request)) as unknown,
           );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "project.configure",
+                resource: `path:${input.path}`,
+                reason: "Register a local project path",
+                arguments: { enabled: input.enabled },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           return sendJson(
             response,
             201,
@@ -891,6 +1090,20 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
           const input = projectIndexRequestSchema.parse(
             JSON.parse(await readBody(request)) as unknown,
           );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "project.read",
+                resource: `project:${input.projectId}`,
+                projectId: input.projectId,
+                reason: "Index non-secret project files for local retrieval",
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           return sendJson(
             response,
             200,
@@ -901,6 +1114,21 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
           const input = projectSearchRequestSchema.parse(
             JSON.parse(await readBody(request)) as unknown,
           );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "project.read",
+                resource: `project:${input.projectId}`,
+                projectId: input.projectId,
+                reason: "Search the local project index",
+                arguments: { query: input.query },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           return sendJson(
             response,
             200,
@@ -911,6 +1139,20 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
           const input = projectSelectRequestSchema.parse(
             JSON.parse(await readBody(request)) as unknown,
           );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "project.configure",
+                resource: `project:${input.projectId}`,
+                projectId: input.projectId,
+                reason: "Select the active local project",
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           return sendJson(
             response,
             200,
@@ -933,6 +1175,21 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               message: "Project is missing or disabled",
               retryable: false,
             });
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "codex.task.create",
+                resource: `project:${project.id}`,
+                projectId: project.id,
+                reason: "Create an isolated coding task and worktree",
+                arguments: { title: input.title },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           const taskId = randomUUID();
           const worktree = await options.worktreeManager.create({
             taskId,
@@ -975,6 +1232,26 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
           if (!taskId || !action)
             throw new Error("Task action target is missing");
           const decodedTaskId = decodeURIComponent(taskId);
+          const task =
+            await options.codingAgentProvider.getStatus(decodedTaskId);
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action:
+                  action === "verify"
+                    ? "codex.task.verify"
+                    : "codex.task.control",
+                resource: `task:${decodedTaskId}`,
+                projectId: task.projectId,
+                reason: `Run coding task action: ${action}`,
+                arguments: { taskId: decodedTaskId, action },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           if (action === "start")
             return sendJson(
               response,
@@ -1007,16 +1284,17 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
               ),
             });
           if (action === "verify") {
-            const task =
-              await options.codingAgentProvider.getStatus(decodedTaskId);
             return sendJson(
               response,
               200,
               await verifyTaskAndDisplay(
                 options.bus,
                 options.taskVerification,
+                options.permissionBroker,
                 decodedTaskId,
+                task.projectId,
                 task.title,
+                true,
               ),
             );
           }
@@ -1040,6 +1318,23 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
           const input = projectEnabledRequestSchema.parse(
             JSON.parse(await readBody(request)) as unknown,
           );
+          if (
+            !(await requirePermission(
+              response,
+              options.permissionBroker,
+              permissionRequest({
+                action: "project.configure",
+                resource: `project:${projectId}`,
+                projectId,
+                reason: input.enabled
+                  ? "Enable a project in JARVIS"
+                  : "Disable a project in JARVIS",
+                arguments: { enabled: input.enabled },
+              }),
+              permissionReceipt(request),
+            ))
+          )
+            return;
           return sendJson(
             response,
             200,
@@ -1054,6 +1349,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
           signal,
           router,
           options.researchProvider,
+          options.permissionBroker,
         );
         response.writeHead(204, { "cache-control": "no-store" });
         response.end();
@@ -1216,6 +1512,7 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
         options.bus,
         options.codingAgentProvider,
         options.taskVerification,
+        options.permissionBroker,
         event,
       ),
   );

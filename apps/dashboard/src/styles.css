@@ -494,6 +494,29 @@ body {
   color: #a79062;
   font-size: 10px;
 }
+
+.approval-actions {
+  display: flex;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+}
+
+.approval-actions button {
+  flex: 1;
+  border: 1px solid rgba(60, 218, 255, 0.45);
+  background: rgba(7, 25, 34, 0.9);
+  color: var(--cyan);
+  padding: 0.45rem;
+  font: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.approval-actions button:first-child {
+  border-color: rgba(255, 92, 111, 0.45);
+  color: #ff8795;
+}
 .message-citations {
   display: flex;
   flex-wrap: wrap;

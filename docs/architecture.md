@@ -362,6 +362,10 @@ Phase 10 implements the deterministic portion in `SqliteProjectSearch`: canonica
 
 Verification is a separate `TaskVerificationProvider`. It runs only repository-evidenced package scripts inside the isolated worktree, produces typed check results, and derives the review diff from the immutable worktree baseline. This keeps test execution and review artifacts independent from agent prose or transport-specific terminal output.
 
+## Permission control plane
+
+`SqlitePermissionBroker` is the sole Core authorization boundary for tool execution. Callers provide a typed action, exact resource, project, arguments, reason, and provenance; risk is derived from a closed server-side catalog and cannot be downgraded by a client. Level 0/1 actions are policy-approved only within their declared scopes. Level 2/3 actions create a durable pending approval, and approval produces a short-lived, one-use receipt bound to the canonical request digest. Providers never receive a general permission capability.
+
 ## Task and worktree model
 
 Task states are explicit and versioned:

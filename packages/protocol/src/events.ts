@@ -310,6 +310,20 @@ export const eventPayloadSchemas = {
       z.literal(2),
       z.literal(3),
     ]),
+    resource: z.string().min(1),
+    projectId: z.string().min(1).optional(),
+  }),
+  "approval.approved": z.strictObject({
+    approvalId: z.string().min(1),
+    action: z.string().min(1),
+    automatic: z.boolean(),
+    receiptId: z.string().min(1).optional(),
+    expiresAt: z.iso.datetime().optional(),
+  }),
+  "approval.rejected": z.strictObject({
+    approvalId: z.string().min(1),
+    action: z.string().min(1),
+    reason: z.string().min(1).optional(),
   }),
   "reference.display.requested": z.strictObject({
     mode: z.enum([

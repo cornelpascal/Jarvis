@@ -15,7 +15,7 @@ export interface HudState {
   selectedProjectId?: string;
   agents: Record<string, AgentSummary>;
   messages: ConversationMessage[];
-  approval?: ApprovalSummary;
+  approval?: ApprovalSummary | undefined;
   telemetry?: Telemetry;
   activity: string[];
   lastRoute?: RouteSummary;
@@ -402,6 +402,31 @@ export function reduceHudEvent(
           state,
           `Approval required: ${event.payload.action}`,
         ),
+      };
+    case "approval.approved":
+      if (event.payload.automatic) return state;
+      return {
+        ...state,
+        ...(state.approval?.approvalId === event.payload.approvalId
+          ? { approval: undefined }
+          : {}),
+        mode:
+          state.approval?.approvalId === event.payload.approvalId
+            ? "IDLE"
+            : state.mode,
+        activity: appendActivity(state, `${event.payload.action}: approved`),
+      };
+    case "approval.rejected":
+      return {
+        ...state,
+        ...(state.approval?.approvalId === event.payload.approvalId
+          ? { approval: undefined }
+          : {}),
+        mode:
+          state.approval?.approvalId === event.payload.approvalId
+            ? "IDLE"
+            : state.mode,
+        activity: appendActivity(state, `${event.payload.action}: rejected`),
       };
     case "jarvis.test":
     case "reference.display.requested":

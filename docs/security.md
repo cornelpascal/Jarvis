@@ -54,6 +54,8 @@ Phase 11 launches the fixed Codex executable with argument arrays and communicat
 
 Phase 13 rejects inferred/free-form verification commands. Only evidence-backed npm, pnpm, and yarn package scripts are converted into executable-plus-argument arrays. They run in the isolated task worktree with shell expansion disabled, a minimal inherited environment, bounded output, and a timeout. Diffs are anchored to the recorded worktree baseline and remain review artifacts, not executable instructions.
 
+Phase 14 centralizes tool authorization in a closed action catalog. Clients cannot declare or lower risk. Each decision records action, exact resource/project, argument names, reason, provenance, state, and resolution; argument values affect the action digest but are redacted from the audit row. Elevated approvals issue a five-minute one-use receipt cryptographically bound to the canonical request. Replays, expiry, changed arguments/resources, unknown actions, missing Codex project scope, and untrusted web-origin state changes fail closed. Identical pending requests are deduplicated. The localhost launch token is still required to resolve an approval, while the action receipt is independently required to retry the exact elevated operation.
+
 Phase 12 makes isolated Git worktrees mandatory for Core-created coding tasks. Source dirty state is observed but never reset or copied. Canonical containment and persisted ownership protect cleanup; dirty task worktrees are preserved. Repositories tracking `.env`, PEM, or private-key files are refused before checkout, and no non-Git fallback edits the registered source directory.
 
 ## Assets

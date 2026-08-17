@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 13 — DONE**
-Next phase: **Phase 14 — NOT_STARTED**
+Current phase: **Phase 14 — DONE**
+Next phase: **Phase 15 — NOT_STARTED**
 
 ## Status definitions
 
@@ -47,7 +47,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 11 — Codex integration               | DONE        | Structured `CodingAgentProvider` with background task stream                      |
 | 12 — Worktree manager                | DONE        | One isolated worktree/branch per significant coding task                          |
 | 13 — Verification + diff UI          | DONE        | Configured checks and Reference Deck diff review                                  |
-| 14 — Permission broker               | NOT_STARTED | Complete mediation, risk policy, approvals, denial/injection tests                |
+| 14 — Permission broker               | DONE        | Complete mediation, risk policy, approvals, denial/injection tests                |
 | 15 — Git commit/push                 | NOT_STARTED | Explicit, resolved, audited commit/push flow; no auto-push                        |
 | 16 — Deployment system               | NOT_STARTED | Typed adapters, validated configured deploy, health events                        |
 | 17 — Deployment config auto-creation | NOT_STARTED | Missing-config analysis/proposal/approval/save workflow                           |
@@ -212,11 +212,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 14 — Permission broker
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Complete mediation API, risk/resource/action schemas, policy evaluation, approval UI/events, action digest and one-use receipts, audit, default deny, provenance/taint and egress checks.
 - **Dependencies:** Core actions/providers/events/database; integrate all existing executable paths before acceptance.
 - **Acceptance:** Every consequential action passes the broker; Level 3 requires exact approval; denials/timeouts are honored; unknown actions deny; web injection cannot escalate; no bypass path remains.
 - **Tests:** Policy matrix, receipt replay/tamper/expiry, target/argument change, denial/error, concurrent approvals, prompt/tool injection, provenance, secret egress, path scope, local API forgery.
+- **Evidence:** 63 unit/integration tests pass. The broker derives risk from a closed action catalog, records every decision with argument values redacted, deduplicates identical pending requests, denies untrusted web escalation without prompting, and issues expiring one-use receipts bound to a canonical digest of action/resource/project/arguments/provenance. Tests cover approval/rejection, receipt replay/tampering/expiry, prompt injection provenance, audit redaction, authenticated HTTP approval resolution, and exact browser-action retry. Core mediation covers research, references, browser actions, project registry/search, Codex task creation/control, worktree creation, and verification.
+- **Known limitations:** Approval receipts require the initiating client/workflow to retry the exact action; Core deliberately does not retain and replay arbitrary side-effecting HTTP bodies. Codex App Server remains on `approvalPolicy: never`, so unexpected transport-level approval requests are denied and surfaced rather than dynamically elevated. Broader secret-egress classification will expand with deployment/system/credential providers.
 - **Known risks:** Missed execution path, confusing approval UX, overly broad cached policy, time-of-check/time-of-use changes.
 
 ### Phase 15 — Git commit / push

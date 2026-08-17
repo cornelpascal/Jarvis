@@ -1,6 +1,6 @@
 # Event protocol
 
-Status: Phase 8
+Status: Phase 14
 Last updated: 2026-08-17
 
 JARVIS state crosses process boundaries only through registered, runtime-validated events. The dashboard never parses assistant prose to infer system state.
@@ -40,6 +40,7 @@ Current types through Phase 8:
 | `git.worktree.created`                      | Isolated branch/path/baseline ownership     | Durable              |
 | `git.worktree.removed`                      | Safe managed-worktree cleanup               | Durable              |
 | `approval.requested`                        | Approval-surface projection contract        | Durable when emitted |
+| `approval.approved`, `approval.rejected`    | Auditable policy/user resolution            | Durable              |
 | `reference.display.requested`               | Typed Reference Deck mode and items         | Durable when emitted |
 | `voice.connected`, `voice.listening`        | Realtime voice connection/readiness         | Transient            |
 | `voice.user_speaking`, `voice.processing`   | Input turn lifecycle                        | Transient            |

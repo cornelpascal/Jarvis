@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@jarvis/database": "workspace:*",
+    "@jarvis/event-bus": "workspace:*",
     "zod": "^4.1.5"
   }
 }

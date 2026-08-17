@@ -127,6 +127,12 @@ importers:
 
   packages/permissions:
     dependencies:
+      '@jarvis/database':
+        specifier: workspace:*
+        version: link:../database
+      '@jarvis/event-bus':
+        specifier: workspace:*
+        version: link:../event-bus
       zod:
         specifier: ^4.1.5
         version: 4.4.3
@@ -180,6 +186,9 @@ importers:
       '@jarvis/logging':
         specifier: workspace:*
         version: link:../../packages/logging
+      '@jarvis/permissions':
+        specifier: workspace:*
+        version: link:../../packages/permissions
       '@jarvis/projects':
         specifier: workspace:*
         version: link:../projects

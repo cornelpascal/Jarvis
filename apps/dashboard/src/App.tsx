@@ -45,6 +45,7 @@ export function App() {
   const [displayCount, setDisplayCount] = useState(0);
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [resolvingApproval, setResolvingApproval] = useState(false);
   const voice = useMemo(() => new OpenAiWebRtcVoiceProvider(), []);
   const [voiceState, setVoiceState] = useState<VoiceRuntimeState>(
     voice.state(),
@@ -92,6 +93,35 @@ export function App() {
       setSubmitting(false);
     }
   }, [draft, hud.selectedProjectId, submitting]);
+
+  const resolveApproval = useCallback(
+    async (approved: boolean): Promise<void> => {
+      if (!hud.approval || resolvingApproval) return;
+      setResolvingApproval(true);
+      try {
+        const response = await coreRequest(
+          `/approvals/${encodeURIComponent(hud.approval.approvalId)}/resolve`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ approved }),
+          },
+        );
+        if (!response.ok)
+          throw new Error(
+            `Approval resolution failed (${String(response.status)})`,
+          );
+        setError(undefined);
+      } catch (cause) {
+        setError(
+          cause instanceof Error ? cause.message : "Approval resolution failed",
+        );
+      } finally {
+        setResolvingApproval(false);
+      }
+    },
+    [hud.approval, resolvingApproval],
+  );
 
   useEffect(() => {
     const cleanup = connectCore({
@@ -330,6 +360,23 @@ export function App() {
                 <small>LEVEL {hud.approval.riskLevel} APPROVAL</small>
                 <strong>{hud.approval.action}</strong>
                 <p>{hud.approval.reason}</p>
+                <small>{hud.approval.resource}</small>
+                <div className="approval-actions">
+                  <button
+                    disabled={resolvingApproval}
+                    onClick={() => void resolveApproval(false)}
+                    type="button"
+                  >
+                    REJECT
+                  </button>
+                  <button
+                    disabled={resolvingApproval}
+                    onClick={() => void resolveApproval(true)}
+                    type="button"
+                  >
+                    APPROVE ONCE
+                  </button>
+                </div>
               </div>
             ) : null}
             <form

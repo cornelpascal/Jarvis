@@ -143,4 +143,18 @@ export const migrations: readonly Migration[] = [
       "CREATE INDEX IF NOT EXISTS idx_worktrees_project ON worktrees(project_id)",
     ],
   },
+  {
+    version: 5,
+    name: "permission_receipts",
+    statements: [
+      "ALTER TABLE approvals ADD COLUMN action_digest TEXT",
+      "ALTER TABLE approvals ADD COLUMN request_json TEXT",
+      `CREATE TABLE IF NOT EXISTS permission_receipts (
+        id TEXT PRIMARY KEY, approval_id TEXT NOT NULL REFERENCES approvals(id) ON DELETE CASCADE,
+        action_digest TEXT NOT NULL, expires_at TEXT NOT NULL, used_at TEXT, created_at TEXT NOT NULL
+      )`,
+      "CREATE INDEX IF NOT EXISTS idx_approvals_digest_state ON approvals(action_digest, state)",
+      "CREATE INDEX IF NOT EXISTS idx_permission_receipts_digest ON permission_receipts(action_digest)",
+    ],
+  },
 ];
