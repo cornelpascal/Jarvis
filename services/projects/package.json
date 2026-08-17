@@ -1,0 +1,16 @@
+{
+  "name": "@jarvis/projects",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jarvis/database": "workspace:*",
+    "@jarvis/event-bus": "workspace:*",
+    "@jarvis/protocol": "workspace:*"
+  }
+}

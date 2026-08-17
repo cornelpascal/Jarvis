@@ -20,7 +20,12 @@ Current types through Phase 8:
 | `system.telemetry`                        | CPU/RAM/disk/network/provider readings      | Transient            |
 | `conversation.message.added`              | User-facing conversation projection         | Durable when emitted |
 | `conversation.route.selected`             | Ranked route/tool shortlist, not permission | Durable              |
-| `project.registered`, `project.selected`  | Project-panel projection contracts          | Durable when emitted |
+| `project.scan.started`                    | Configured-root scan began                  | Durable              |
+| `project.discovered`                      | Candidate and signal evidence found         | Durable              |
+| `project.scan.completed`                  | Bounded discovery counts                    | Durable              |
+| `project.scan.failed`                     | Registry-level failure                      | Durable              |
+| `project.registered`, `project.updated`   | Project-panel projection contracts          | Durable              |
+| `project.removed`, `project.selected`     | Registry removal/current selection          | Durable              |
 | `codex.agent.progress`                    | Active-agent projection contract            | Durable when emitted |
 | `approval.requested`                      | Approval-surface projection contract        | Durable when emitted |
 | `reference.display.requested`             | Typed Reference Deck mode and items         | Durable when emitted |

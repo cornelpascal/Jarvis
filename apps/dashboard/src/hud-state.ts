@@ -208,6 +208,58 @@ export function reduceHudEvent(
           [event.payload.projectId]: event.payload,
         },
       };
+    case "project.scan.started":
+      return {
+        ...state,
+        activity: appendActivity(state, "Scanning project roots"),
+      };
+    case "project.discovered":
+      return {
+        ...state,
+        activity: appendActivity(state, `Discovered ${event.payload.name}`),
+      };
+    case "project.scan.completed":
+      return {
+        ...state,
+        activity: appendActivity(
+          state,
+          `Project scan complete · ${String(event.payload.discovered)} found`,
+        ),
+      };
+    case "project.scan.failed":
+      return {
+        ...state,
+        mode: "ERROR",
+        modeReason: event.payload.message,
+        activity: appendActivity(state, "Project scan failed"),
+      };
+    case "project.updated": {
+      const project = state.projects[event.payload.projectId];
+      if (!project) return state;
+      return {
+        ...state,
+        projects: {
+          ...state.projects,
+          [event.payload.projectId]: {
+            ...project,
+            enabled: event.payload.enabled,
+          },
+        },
+      };
+    }
+    case "project.removed": {
+      const projects = Object.fromEntries(
+        Object.entries(state.projects).filter(
+          ([projectId]) => projectId !== event.payload.projectId,
+        ),
+      );
+      if (state.selectedProjectId === event.payload.projectId) {
+        const { selectedProjectId, ...remaining } = state;
+        void selectedProjectId;
+        return { ...remaining, projects };
+      }
+      return { ...state, projects };
+    }
     case "project.selected":
       return { ...state, selectedProjectId: event.payload.projectId };
     case "codex.agent.progress":

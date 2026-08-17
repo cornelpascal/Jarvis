@@ -16,12 +16,16 @@ import {
   PROTOCOL_VERSION,
   eventStreamSubscribeSchema,
   browserActionSchema,
+  projectEnabledRequestSchema,
+  projectRegisterRequestSchema,
+  projectSelectRequestSchema,
   routeRequestSchema,
   voiceClientSignalSchema,
   type CapabilityManifest,
   type BrowserProvider,
   type BrowserAction,
   type BrowserActionResult,
+  type ProjectRegistryProvider,
   type EventStreamServerMessage,
   type HealthSnapshot,
   type ResearchProvider,
@@ -37,6 +41,7 @@ import {
 } from "@jarvis/research";
 import { IntentRouter } from "./orchestrator.js";
 import { BrowserAgentError } from "@jarvis/browser";
+import { ProjectRegistryError } from "@jarvis/projects";
 
 const MAX_BUFFERED_BYTES = 512 * 1024;
 const SUBSCRIBE_TIMEOUT_MS = 5_000;
@@ -52,6 +57,7 @@ export interface CoreServerOptions {
   voiceGateway: RealtimeCallGateway;
   researchProvider: ResearchProvider;
   browserProvider: BrowserProvider;
+  projectRegistry: ProjectRegistryProvider;
 }
 
 export interface CoreServer {
@@ -533,12 +539,62 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
       return sendJson(response, 200, health());
     if (request.method === "GET" && request.url === "/capabilities")
       return sendJson(response, 200, await capabilities());
+    if (request.method === "GET" && request.url === "/projects") {
+      if (
+        !allowedOrigin(origin) ||
+        !tokenMatches(requestToken(request), options.sessionToken)
+      )
+        return sendJson(response, 401, {
+          code: "UNAUTHORIZED",
+          message: "A valid launch-scoped token is required",
+          retryable: false,
+        });
+      return sendJson(response, 200, options.projectRegistry.snapshot());
+    }
+    if (request.method === "DELETE" && request.url?.startsWith("/projects/")) {
+      if (
+        !allowedOrigin(origin) ||
+        !tokenMatches(requestToken(request), options.sessionToken)
+      )
+        return sendJson(response, 401, {
+          code: "UNAUTHORIZED",
+          message: "A valid launch-scoped token is required",
+          retryable: false,
+        });
+      const segments = request.url.split("/").filter(Boolean);
+      if (segments.length !== 2)
+        return sendJson(response, 404, {
+          code: "NOT_FOUND",
+          message: "Route not found",
+          retryable: false,
+        });
+      const projectId = segments.at(1);
+      if (!projectId) throw new Error("Project identifier is missing");
+      try {
+        options.projectRegistry.remove(decodeURIComponent(projectId));
+        response.writeHead(204, { "cache-control": "no-store" });
+        response.end();
+        return;
+      } catch (cause) {
+        if (cause instanceof ProjectRegistryError)
+          return sendJson(response, 404, {
+            code: cause.code,
+            message: cause.message,
+            retryable: false,
+          });
+        throw cause;
+      }
+    }
     if (
       request.method === "POST" &&
       (request.url === "/voice/call" ||
         request.url === "/voice/events" ||
         request.url === "/commands/route" ||
-        request.url === "/browser/action")
+        request.url === "/browser/action" ||
+        request.url === "/projects/scan" ||
+        request.url === "/projects/register" ||
+        request.url === "/projects/select" ||
+        /^\/projects\/[^/]+\/enabled$/.test(request.url ?? ""))
     ) {
       if (
         !allowedOrigin(origin) ||
@@ -616,6 +672,42 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             ),
           );
         }
+        if (request.url === "/projects/scan")
+          return sendJson(response, 200, await options.projectRegistry.scan());
+        if (request.url === "/projects/register") {
+          const input = projectRegisterRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          return sendJson(
+            response,
+            201,
+            await options.projectRegistry.register(input.path, input.enabled),
+          );
+        }
+        if (request.url === "/projects/select") {
+          const input = projectSelectRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          return sendJson(
+            response,
+            200,
+            options.projectRegistry.select(input.projectId),
+          );
+        }
+        if (/^\/projects\/[^/]+\/enabled$/.test(request.url ?? "")) {
+          const projectIdSegment = request.url?.split("/").at(2);
+          if (!projectIdSegment)
+            throw new Error("Project identifier is missing");
+          const projectId = decodeURIComponent(projectIdSegment);
+          const input = projectEnabledRequestSchema.parse(
+            JSON.parse(await readBody(request)) as unknown,
+          );
+          return sendJson(
+            response,
+            200,
+            options.projectRegistry.setEnabled(projectId, input.enabled),
+          );
+        }
         const signal = voiceClientSignalSchema.parse(
           JSON.parse(await readBody(request)) as unknown,
         );
@@ -636,6 +728,12 @@ export function createCoreServer(options: CoreServerOptions): CoreServer {
             retryable: cause.retryable,
           });
         if (cause instanceof BrowserAgentError)
+          return sendJson(response, 400, {
+            code: cause.code,
+            message: cause.message,
+            retryable: false,
+          });
+        if (cause instanceof ProjectRegistryError)
           return sendJson(response, 400, {
             code: cause.code,
             message: cause.message,

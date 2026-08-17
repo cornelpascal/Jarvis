@@ -65,6 +65,10 @@ The cited research answer is published before reference evaluation begins. Accep
 
 URL policy permits HTTP(S) only, rejects embedded credentials, and blocks private/loopback/link-local targets by default. The provider is a browser interaction adapter, not a shell or system bridge. Browser shutdown is part of Core shutdown so profile state is flushed without orphaning a browser process.
 
+## Phase 9 Project Registry
+
+`services/projects` owns project discovery and registry persistence. It canonicalizes configured roots, performs bounded deterministic signal scans, analyzes only top-level manifest evidence, and stores normalized records in SQLite. It never executes detected commands. The core injects the registry through `ProjectRegistryProvider`, exposes authenticated localhost registry actions, and streams typed discovery/selection state to the dashboard. See [project-registry.md](./project-registry.md).
+
 ## Architectural principles
 
 1. The Node/TypeScript core owns business rules and authoritative state.

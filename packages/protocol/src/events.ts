@@ -171,6 +171,29 @@ export const eventPayloadSchemas = {
     path: z.string().min(1),
     enabled: z.boolean(),
   }),
+  "project.scan.started": z.strictObject({
+    roots: z.array(z.string().min(1)),
+  }),
+  "project.discovered": z.strictObject({
+    projectId: z.string().min(1),
+    name: z.string().min(1),
+    path: z.string().min(1),
+    signals: z.array(z.string().min(1)),
+  }),
+  "project.scan.completed": z.strictObject({
+    discovered: z.int().nonnegative(),
+    registered: z.int().nonnegative(),
+    inaccessible: z.int().nonnegative(),
+  }),
+  "project.scan.failed": z.strictObject({
+    code: z.string().min(1),
+    message: z.string().min(1),
+  }),
+  "project.updated": z.strictObject({
+    projectId: z.string().min(1),
+    enabled: z.boolean(),
+  }),
+  "project.removed": z.strictObject({ projectId: z.string().min(1) }),
   "project.selected": z.strictObject({ projectId: z.string().min(1) }),
   "codex.agent.progress": z.strictObject({
     agentRunId: z.string().min(1),

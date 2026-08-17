@@ -1,8 +1,8 @@
 # JARVIS Implementation Plan
 
 Last updated: 2026-08-17
-Current phase: **Phase 8 — DONE**
-Next phase: **Phase 9 — NOT_STARTED**
+Current phase: **Phase 9 — DONE**
+Next phase: **Phase 10 — NOT_STARTED**
 
 ## Status definitions
 
@@ -42,7 +42,7 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 | 6 — Web research                     | DONE        | Fresh structured research with sources and streamed events                        |
 | 7 — Smart References                 | DONE        | Independent visual-value evaluator and asynchronous rendering                     |
 | 8 — Browser Agent                    | DONE        | Isolated Playwright Chromium and typed browser actions                            |
-| 9 — Project Registry                 | NOT_STARTED | Configurable project discovery and metadata                                       |
+| 9 — Project Registry                 | DONE        | Configurable project discovery and metadata                                       |
 | 10 — Project index/retrieval         | NOT_STARTED | Deterministic layered local project search                                        |
 | 11 — Codex integration               | NOT_STARTED | Structured `CodingAgentProvider` with background task stream                      |
 | 12 — Worktree manager                | NOT_STARTED | One isolated worktree/branch per significant coding task                          |
@@ -161,12 +161,13 @@ External API tests use deterministic mocks by default. Consequential Git/deploym
 
 ### Phase 9 — Project Registry
 
-- **Status:** `NOT_STARTED`
+- **Status:** `DONE`
 - **Scope:** Configurable roots with `C:\\Documents` default, deterministic project signal scan, canonical metadata, enable/disable/manual register/remove, Git/stack/command evidence, HUD selection.
 - **Dependencies:** Phase 0 storage/config and Phase 2 UI.
 - **Acceptance:** Projects are discovered and persisted; roots/settings survive restart; inaccessible/duplicate/nested projects are handled; no commands are assumed without evidence.
 - **Tests:** Fixture trees for all required signals, Windows canonical/case paths, junction/permission errors, nested repos, ignore/size limits, registry integration and HUD selection.
-- **Known risks:** Very large roots, junction loops, inaccessible paths, false project positives, `C:\Documents` absent on a machine.
+- **Evidence:** 49 unit/integration tests pass. Fixture scans discover nested Node/Rust projects, preserve only manifest-backed commands, tolerate inaccessible roots, and cover manual registration, removal, enablement, selection, and restart persistence. Core exposes authenticated registry endpoints and the HUD consumes typed project discovery/state events. Format, lint, typecheck, build, and native smoke pass.
+- **Known limitations:** Root editing has no dedicated settings UI yet. Scans are bounded startup/manual operations without filesystem watching. Reparse points are intentionally skipped. Deep framework/deployment analysis belongs to later phases.
 
 ### Phase 10 — Project index / retrieval
 

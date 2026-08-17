@@ -13,6 +13,7 @@ import { Logger } from "@jarvis/logging";
 import { OpenAiRealtimeGateway } from "@jarvis/voice";
 import { OpenAiResearchProvider } from "@jarvis/research";
 import { PlaywrightBrowserProvider } from "@jarvis/browser";
+import { SqliteProjectRegistry } from "@jarvis/projects";
 import { createCoreServer } from "./server.js";
 import { startTelemetry } from "./telemetry.js";
 
@@ -40,6 +41,11 @@ const browserProvider = new PlaywrightBrowserProvider({
   profileDirectory: paths.browserProfiles,
   channel: "msedge",
 });
+const projectRegistry = new SqliteProjectRegistry({
+  roots: config.projects.roots,
+  database,
+  bus,
+});
 const server = createCoreServer({
   config,
   environment,
@@ -50,9 +56,11 @@ const server = createCoreServer({
   voiceGateway,
   researchProvider,
   browserProvider,
+  projectRegistry,
 });
 
 await server.start();
+await projectRegistry.initialize();
 await bus.publish(
   bus.create("jarvis.ready", "core", { healthUrl: `${server.url}/health` }),
 );

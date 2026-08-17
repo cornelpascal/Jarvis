@@ -46,6 +46,8 @@ Phase 7 evaluates only query/answer metadata and source count; it cannot execute
 
 Phase 8 runs Playwright in a JARVIS-owned profile, never a personal browser profile. Navigation rejects non-HTTP(S), credential-bearing, loopback, link-local, private IPv4, and local/private IPv6 targets by default. Extracted text and DOM state remain web-tainted. The browser provider receives no shell, filesystem, system, Codex, Git, deployment, memory, or approval interface; website text cannot submit authenticated Core commands. Extracted text is capped at 100 KiB and interactions have bounded timeouts.
 
+Phase 9 project scanning is read-only and bounded by depth and directory limits. Canonical real paths prevent path aliases from creating duplicate identities, while symbolic links and reparse points are not traversed. The registry reads top-level manifests but never executes discovered scripts. Registry removal deletes database metadata only, never project files.
+
 ## Assets
 
 Protected assets include:

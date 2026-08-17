@@ -165,6 +165,9 @@ importers:
       '@jarvis/logging':
         specifier: workspace:*
         version: link:../../packages/logging
+      '@jarvis/projects':
+        specifier: workspace:*
+        version: link:../projects
       '@jarvis/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -190,6 +193,18 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
+
+  services/projects:
+    dependencies:
+      '@jarvis/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@jarvis/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@jarvis/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
 
   services/research:
     dependencies:

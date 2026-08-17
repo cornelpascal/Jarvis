@@ -1,6 +1,7 @@
 export * from "./events.js";
 export * from "./event-stream.js";
 export * from "./providers.js";
+export * from "./projects.js";
 export * from "./orchestrator.js";
 export * from "./research.js";
 export * from "./references.js";
