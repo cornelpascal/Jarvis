@@ -13,9 +13,11 @@ public sealed class CodexJsonRpcClientTests
         var notification = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         client.Notification += (_, value) => notification.TrySetResult(value.Method);
 
-        var result = await client.RequestAsync("thread/start", new { }, TimeSpan.FromSeconds(5));
+        // Cold PowerShell startup on a fresh Windows runner can exceed five seconds.
+        // Keep this fixture allowance separate from the production request timeout.
+        var result = await client.RequestAsync("thread/start", new { }, TimeSpan.FromSeconds(30));
 
         Assert.Equal("thread-test", result.GetProperty("thread").GetProperty("id").GetString());
-        Assert.Equal("turn/delta", await notification.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal("turn/delta", await notification.Task.WaitAsync(TimeSpan.FromSeconds(30)));
     }
 }
