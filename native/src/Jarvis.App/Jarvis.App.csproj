@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>Jarvis.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Platforms>x64</Platforms>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Jarvis.Core\Jarvis.Core.csproj" />
+    <ProjectReference Include="..\Jarvis.Infrastructure\Jarvis.Infrastructure.csproj" />
+    <ProjectReference Include="..\Jarvis.Protocol\Jarvis.Protocol.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Markdig" />
+    <PackageReference Include="Microsoft.Graphics.Win2D" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+    <Content Include="..\..\..\jarvis.config.yaml" Link="jarvis.config.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\WakeWord\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="RemoveUnusedWebView2Payload" AfterTargets="Publish">
+    <ItemGroup>
+      <UnusedWebView2 Include="$(PublishDir)Microsoft.Web.WebView2.Core.dll" />
+      <UnusedWebView2 Include="$(PublishDir)Microsoft.Web.WebView2.Core.Projection.dll" />
+      <UnusedWebView2 Include="$(PublishDir)WebView2Loader.dll" />
+    </ItemGroup>
+    <Delete Files="@(UnusedWebView2)" />
+  </Target>
+  <Target Name="CopyApplicationResourceIndex" AfterTargets="Publish" Condition="'$(PublishSingleFile)' != 'true' and Exists('$(TargetDir)$(AssemblyName).pri')">
+    <Copy SourceFiles="$(TargetDir)$(AssemblyName).pri" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

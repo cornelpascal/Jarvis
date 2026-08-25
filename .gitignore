@@ -16,3 +16,9 @@ apps/dashboard/src-tauri/target/
 apps/dashboard/src-tauri/binaries/
 apps/dashboard/src-tauri/resources/
 .jarvis-build/
+native/**/bin/
+native/**/obj/
+native/.vs/
+native/artifacts/
+/jarvis/
+/spotify-*.png

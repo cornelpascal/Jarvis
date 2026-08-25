@@ -1,43 +1,60 @@
-# JARVIS
+# Jarvis
 
-Windows-first local desktop AI operating layer built with Tauri 2, React, TypeScript, and a local Node.js core.
+Native Windows frontend for Codex with typed and voice input.
 
-## Prerequisites
+> **Security notice:** Jarvis starts Codex with `approvalPolicy: never` and
+> `sandbox: danger-full-access`. Codex receives every permission held by the
+> Jarvis process. Review the [security policy](SECURITY.md) before using it.
+
+The current native application is a self-contained, unpackaged .NET 10 and
+WinUI 3 desktop app under [`native/`](native/). The earlier Tauri implementation
+remains in the repository during migration and parity testing.
+
+JARVIS owns the local desktop shell, optional workspace selection, task controls, output, and verification. Codex App Server is the only reasoning and execution backend. General capabilities such as media search, sourced web research, browser checking, and deployment workflows are repository-scoped Codex skills under `.agents/skills` rather than separate JARVIS services.
+
+## Requirements
 
 - Windows 10/11
 - Node.js 22.12 or newer
 - Corepack/pnpm
+- Codex CLI installed and authenticated
 - Rust stable and WebView2 for the native Tauri window
-- Optional external providers are configured through environment variables or the Windows secret provider; never commit `.env`.
+- `OPENAI_API_KEY` only when Realtime voice transcription is wanted
+- Python with the local openWakeWord runtime when “Hey Jarvis” activation is wanted
+
+For the native WinUI application, only Windows 10/11 and the external Codex CLI
+are runtime prerequisites. The published application carries .NET and Windows
+App SDK dependencies with it.
+
+## Native WinUI build
+
+```powershell
+& 'C:\Program Files\dotnet\dotnet.exe' test .\native\Jarvis.slnx
+.\native\publish.ps1
+```
+
+The unsigned local build is written to `native/artifacts/win-x64`. Public
+release binaries are built on GitHub and submitted to SignPath for Authenticode
+signing. See the [code signing policy](docs/code-signing-policy.md).
 
 ## Development
 
 ```powershell
 corepack enable pnpm
 pnpm install
+.\scripts\install-wake-word.ps1
 pnpm dev
 ```
 
-`pnpm dev` generates an in-memory launch token and starts:
+This starts the localhost-only Core at `127.0.0.1:43117` and the dashboard at `127.0.0.1:1420`. Send a prompt immediately to use the private **JARVIS Anywhere** workspace, or use **ADD** to register any folder when Codex should work there. Git and non-Git folders both run directly in the exact selected folder. Select an existing task to steer it with follow-up prompts.
 
-- JARVIS Core on `127.0.0.1:43117`
-- Dashboard on `127.0.0.1:1420`
+Say **Hey Jarvis**, press `Alt+Space`, or use the voice button to start transcription. The wake-word detector runs locally. Every spoken command must contain the whole word **Jarvis** or it is ignored and never sent to Codex. The leading “Hey Jarvis” or “Jarvis” address is removed from accepted commands. Realtime produces transcripts only; Codex remains the sole assistant backend. See [the wake-word guide](docs/wake-word.md) for setup and calibration.
 
-For the Tauri window after Rust is installed:
+For the native window:
 
 ```powershell
 pnpm --filter @jarvis/dashboard tauri dev
 ```
-
-`Alt+Space` reveals the native HUD and starts press-to-activate voice. Realtime voice is optional in development and reads `OPENAI_API_KEY` only in JARVIS Core; without it the HUD reports voice unavailable while all non-voice services continue to run.
-
-Optional local Hey Jarvis wake-word support is installed into a repository-local environment with:
-
-```powershell
-.\scripts\install-wake-word.ps1
-```
-
-It remains disabled by default; see [local wake word](docs/wake-word.md).
 
 ## Checks
 
@@ -47,17 +64,16 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-./scripts/health-check.ps1
 ```
 
-See [architecture](docs/architecture.md), [security](docs/security.md), and the [implementation plan](docs/implementation-plan.md).
+## Security boundary
 
-## Windows package
+Core binds only to loopback and requires a launch-scoped token for commands and events. Codex tasks run in YOLO mode with `sandbox: danger-full-access` and `approvalPolicy: never`, inheriting every filesystem, process, and network permission held by the JARVIS Core process. JARVIS does not automatically elevate to Windows Administrator. Keep Core local and do not expose its token or event socket. Voice credentials stay in Core.
 
-Build the tested per-user NSIS installer with:
+## Privacy and license
 
-```powershell
-.\scripts\package.ps1
-```
+Jarvis does not provide hosted telemetry. Optional voice transcription sends
+microphone audio to OpenAI only while voice input is enabled. Review the full
+[privacy policy](docs/privacy.md).
 
-The packaged dashboard owns a localhost-only core sidecar and generates a new private connection token on every launch. See [packaging and recovery](docs/packaging.md) for installer output, backups, startup behavior, signing, and clean-VM release gates.
+Jarvis is licensed under the [MIT License](LICENSE).

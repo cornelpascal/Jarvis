@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+    <parameter name="fileVersion" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file-set product-name="Jarvis"
+                 product-version="${version}"
+                 file-version="${fileVersion}"
+                 company-name="Jarvis contributors"
+                 copyright="Copyright (c) 2026 Jarvis contributors">
+      <include path="Jarvis.App.exe" original-filename="Jarvis.App.dll" />
+      <include path="Jarvis.App.dll" original-filename="Jarvis.App.dll" />
+      <include path="Jarvis.Core.dll" original-filename="Jarvis.Core.dll" />
+      <include path="Jarvis.Infrastructure.dll" original-filename="Jarvis.Infrastructure.dll" />
+      <include path="Jarvis.Protocol.dll" original-filename="Jarvis.Protocol.dll" />
+      <for-each>
+        <authenticode-sign hash-algorithm="sha256"
+                           description="Jarvis native Windows application"
+                           description-url="https://github.com/cornelpascal/Jarvis" />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>

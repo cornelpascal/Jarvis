@@ -1,0 +1,47 @@
+<Application
+    x:Class="Jarvis.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    RequestedTheme="Dark">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+            <Color x:Key="JarvisBackgroundColor">#020608</Color>
+            <Color x:Key="JarvisPanelColor">#E6050F14</Color>
+            <Color x:Key="JarvisCyanColor">#45DCFF</Color>
+            <Color x:Key="JarvisBrightColor">#DFF9FF</Color>
+            <Color x:Key="JarvisMutedColor">#66838F</Color>
+            <Color x:Key="JarvisLineColor">#2E45DCFF</Color>
+            <Color x:Key="JarvisDangerColor">#FF667B</Color>
+            <SolidColorBrush x:Key="JarvisBackgroundBrush" Color="{StaticResource JarvisBackgroundColor}" />
+            <SolidColorBrush x:Key="JarvisPanelBrush" Color="{StaticResource JarvisPanelColor}" />
+            <SolidColorBrush x:Key="JarvisCyanBrush" Color="{StaticResource JarvisCyanColor}" />
+            <SolidColorBrush x:Key="JarvisBrightBrush" Color="{StaticResource JarvisBrightColor}" />
+            <SolidColorBrush x:Key="JarvisMutedBrush" Color="{StaticResource JarvisMutedColor}" />
+            <SolidColorBrush x:Key="JarvisLineBrush" Color="{StaticResource JarvisLineColor}" />
+            <SolidColorBrush x:Key="JarvisDangerBrush" Color="{StaticResource JarvisDangerColor}" />
+            <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource JarvisBrightBrush}" />
+                <Setter Property="FontFamily" Value="Segoe UI Variable Text" />
+            </Style>
+            <Style TargetType="Button">
+                <Setter Property="Foreground" Value="{StaticResource JarvisCyanBrush}" />
+                <Setter Property="Background" Value="#120E3541" />
+                <Setter Property="BorderBrush" Value="{StaticResource JarvisLineBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="0" />
+                <Setter Property="Padding" Value="10,5" />
+                <Setter Property="FontFamily" Value="Consolas" />
+                <Setter Property="FontSize" Value="11" />
+            </Style>
+            <Style x:Key="PanelBorderStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource JarvisPanelBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource JarvisLineBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="2" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
