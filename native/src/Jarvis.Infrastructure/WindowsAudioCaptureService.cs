@@ -12,6 +12,14 @@ using ProtocolAudioFrame = Jarvis.Protocol.AudioFrame;
 
 namespace Jarvis.Infrastructure;
 
+[ComImport]
+[Guid("5B0D3235-4DBA-4D44-865E-8F1D0E4FD04D")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal unsafe interface IMemoryBufferByteAccess
+{
+    void GetBuffer(out byte* buffer, out uint capacity);
+}
+
 public sealed class WindowsAudioCaptureService : IAudioCaptureService
 {
     public const int CaptureSampleRate = 24_000;
@@ -108,19 +116,12 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
             return;
         }
         using (frame)
-        using (var buffer = frame.LockBuffer(AudioBufferAccessMode.Read))
-        using (var reference = buffer.CreateReference())
         {
-            var byteAccess = reference.As<IMemoryBufferByteAccess>();
-            byteAccess.GetBuffer(out var data, out var capacity);
-            var byteLength = Math.Min(capacity, buffer.Length);
-            byteLength -= byteLength % sizeof(short);
-            if (data is null || byteLength == 0)
+            var bytes = CopyFrameBytes(frame);
+            if (bytes.Length == 0)
             {
                 return;
             }
-            var bytes = new byte[byteLength];
-            new ReadOnlySpan<byte>(data, checked((int)byteLength)).CopyTo(bytes);
             var samples = MemoryMarshal.Cast<byte, short>(bytes);
             double energy = 0;
             foreach (var sample in samples)
@@ -137,6 +138,24 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
         }
     }
 
+    internal static unsafe byte[] CopyFrameBytes(Windows.Media.AudioFrame frame)
+    {
+        using var buffer = frame.LockBuffer(AudioBufferAccessMode.Read);
+        using var reference = buffer.CreateReference();
+        var byteAccess = reference.As<IMemoryBufferByteAccess>();
+        byteAccess.GetBuffer(out var data, out var capacity);
+        var byteLength = checked((int)Math.Min(capacity, buffer.Length));
+        byteLength -= byteLength % sizeof(short);
+        if (data is null || byteLength == 0)
+        {
+            return [];
+        }
+
+        var bytes = new byte[byteLength];
+        new ReadOnlySpan<byte>(data, byteLength).CopyTo(bytes);
+        return bytes;
+    }
+
     public async ValueTask DisposeAsync()
     {
         await StopAsync();
@@ -145,13 +164,5 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
             subscriber.Writer.TryComplete();
         }
         _subscribers.Clear();
-    }
-
-    [ComImport]
-    [Guid("5B0D3235-4DBA-4D44-865E-8F1D0E4FD04D")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private unsafe interface IMemoryBufferByteAccess
-    {
-        void GetBuffer(out byte* buffer, out uint capacity);
     }
 }
