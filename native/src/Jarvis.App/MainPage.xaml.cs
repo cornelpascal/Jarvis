@@ -19,6 +19,7 @@ public sealed partial class MainPage : Page, IDisposable
 
     private async void ExecuteClicked(object sender, RoutedEventArgs e) => await ViewModel.SubmitAsync();
     private async void VoiceClicked(object sender, RoutedEventArgs e) => await ViewModel.ToggleVoiceAsync();
+    private async void EnrollClicked(object sender, RoutedEventArgs e) => await ViewModel.EnrollWakeWordAsync();
     private async void OrbTapped(object sender, TappedRoutedEventArgs e) => await ViewModel.ToggleVoiceAsync();
     private async void RunShellClicked(object sender, RoutedEventArgs e) => await ViewModel.RunShellCommandAsync();
     private async void StopClicked(object sender, RoutedEventArgs e) => await ViewModel.InterruptAsync();

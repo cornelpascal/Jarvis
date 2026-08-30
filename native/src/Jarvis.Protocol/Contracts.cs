@@ -53,10 +53,16 @@ public interface IRealtimeTranscriptionSession : IAsyncDisposable
 
 public sealed record WakeWordDetection(string Phrase, float Score, DateTimeOffset Timestamp);
 
+public sealed record WakeWordEnrollmentProgress(int CollectedSamples, int RequiredSamples, bool IsComplete);
+
 public interface IWakeWordDetector : IAsyncDisposable
 {
+    event EventHandler<WakeWordEnrollmentProgress>? EnrollmentProgress;
+    bool IsEnrolled { get; }
+    bool IsEnrolling { get; }
     IAsyncEnumerable<WakeWordDetection> Detections(CancellationToken cancellationToken = default);
     Task StartAsync(IAsyncEnumerable<AudioFrame> frames, CancellationToken cancellationToken = default);
+    Task BeginEnrollmentAsync(int requiredSamples = 8, CancellationToken cancellationToken = default);
     Task StopAsync(CancellationToken cancellationToken = default);
     void SetSuppressed(bool suppressed);
 }

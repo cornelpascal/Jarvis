@@ -5,6 +5,14 @@ Last updated: 2026-08-17
 
 Wake-word support is optional, disabled by default, and entirely local. The adapter uses the Apache-2.0 openWakeWord engine with its `hey_jarvis` ONNX model. The engine consumes 16 kHz, 16-bit mono microphone frames locally and emits only bounded `ready`, `detected`, or `error` JSON messages to JARVIS Core. Audio samples never cross the sidecar boundary and are never sent to OpenAI or another network service.
 
+The native WinUI client adds a personal enrollment gate on top of the generic
+keyword score. **ENROLL** captures eight separate “Hey Jarvis” examples,
+segments them using local speech/silence energy, and stores only normalized ONNX
+embedding vectors under `%LOCALAPPDATA%\Jarvis\voice`. Raw enrollment audio is
+not persisted. Hands-free activation requires both the generic phrase detector
+and a configured similarity match with one of the enrolled examples. Manual
+voice activation remains available without an enrolled profile.
+
 ## Installation
 
 From PowerShell:
@@ -25,6 +33,7 @@ wake_word:
   engine: openwakeword
   phrase: "hey jarvis"
   threshold: 0.5
+  profile_threshold: 0.82
   cooldown_ms: 3000
 ```
 

@@ -23,7 +23,7 @@ public sealed class WakeWordPipelineTests
         var output = OnnxWakeWordDetector.ResampleTo16Khz(input, WindowsAudioCaptureService.CaptureSampleRate);
 
         Assert.Equal(1_280, output.Length);
-        Assert.Equal(24_000, RealtimeTranscriptionSession.PcmSampleRate);
+        Assert.Equal(24_000, SonioxTranscriptionSession.PcmSampleRate);
     }
 
     private static async IAsyncEnumerable<AudioFrame> Silence24Khz()

@@ -20,7 +20,9 @@ public sealed class OnnxWakeWordDetector : IWakeWordDetector
     private readonly InferenceSession _embeddingSession;
     private readonly InferenceSession _classifierSession;
     private readonly float _threshold;
+    private readonly float _profileThreshold;
     private readonly TimeSpan _cooldown;
+    private readonly WakeWordProfileStore? _profileStore;
     private readonly Channel<WakeWordDetection> _detections = Channel.CreateBounded<WakeWordDetection>(8);
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Queue<short> _pendingSamples = new();
@@ -30,8 +32,27 @@ public sealed class OnnxWakeWordDetector : IWakeWordDetector
     private Task? _pump;
     private long _lastDetectionTicks;
     private volatile bool _suppressed;
+    private readonly List<float[]> _profileSamples = [];
+    private readonly List<float[]> _pendingEnrollmentSamples = [];
+    private int _requiredEnrollmentSamples;
+    private bool _enrollmentSpeechActive;
+    private int _enrollmentSilentCadences;
+    private float[]? _latestEnrollmentSignature;
+    private float _bestEnrollmentKeywordScore;
+    private float _diagnosticKeywordPeak;
+    private float _diagnosticProfilePeak = -1f;
+    private long _lastDiagnosticTicks;
 
-    public OnnxWakeWordDetector(string modelDirectory, float threshold = 0.5f, int cooldownMilliseconds = 5_000)
+    public event EventHandler<WakeWordEnrollmentProgress>? EnrollmentProgress;
+    public bool IsEnrolled => _profileSamples.Count > 0;
+    public bool IsEnrolling => _requiredEnrollmentSamples > 0;
+
+    public OnnxWakeWordDetector(
+        string modelDirectory,
+        float threshold = 0.5f,
+        int cooldownMilliseconds = 5_000,
+        string? profilePath = null,
+        float profileThreshold = 0.72f)
     {
         var melPath = Path.Combine(modelDirectory, "melspectrogram.onnx");
         var embeddingPath = Path.Combine(modelDirectory, "embedding_model.onnx");
@@ -44,7 +65,9 @@ public sealed class OnnxWakeWordDetector : IWakeWordDetector
         _embeddingSession = CreateSession(embeddingPath);
         _classifierSession = CreateSession(classifierPath);
         _threshold = threshold;
+        _profileThreshold = profileThreshold;
         _cooldown = TimeSpan.FromMilliseconds(cooldownMilliseconds);
+        _profileStore = string.IsNullOrWhiteSpace(profilePath) ? null : new WakeWordProfileStore(profilePath);
         for (var index = 0; index < MelFrames; index++) _melHistory.Enqueue(Enumerable.Repeat(1f, MelBins).ToArray());
         for (var index = 0; index < ClassifierFrames; index++) _featureHistory.Enqueue(new float[EmbeddingWidth]);
     }
@@ -56,12 +79,16 @@ public sealed class OnnxWakeWordDetector : IWakeWordDetector
         IntraOpNumThreads = 1,
     });
 
-    public Task StartAsync(IAsyncEnumerable<AudioFrame> frames, CancellationToken cancellationToken = default)
+    public async Task StartAsync(IAsyncEnumerable<AudioFrame> frames, CancellationToken cancellationToken = default)
     {
-        if (_pump is not null) return Task.CompletedTask;
+        if (_pump is not null) return;
+        if (_profileStore is not null && await _profileStore.LoadAsync(cancellationToken) is { } profile)
+        {
+            _profileSamples.Clear();
+            _profileSamples.AddRange(profile.Samples.Where(IsValidProfileSample).Select(Normalize));
+        }
         var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
         _pump = PumpAsync(frames, linked.Token);
-        return Task.CompletedTask;
     }
 
     private async Task PumpAsync(IAsyncEnumerable<AudioFrame> frames, CancellationToken cancellationToken)
@@ -81,14 +108,27 @@ public sealed class OnnxWakeWordDetector : IWakeWordDetector
                     _rawHistory.Enqueue(_pendingSamples.Dequeue());
                     while (_rawHistory.Count > 160_000) _rawHistory.Dequeue();
                 }
-                var score = PredictCadence();
+                var keywordScore = PredictCadence();
                 if (_suppressed) continue;
                 var now = DateTimeOffset.UtcNow;
                 var lastTicks = Interlocked.Read(ref _lastDetectionTicks);
-                if (score >= _threshold && (lastTicks == 0 || now - new DateTimeOffset(lastTicks, TimeSpan.Zero) >= _cooldown))
+                var signature = CurrentSignature();
+                if (IsEnrolling)
+                {
+                    await ProcessEnrollmentCadenceAsync(CadenceRms(), keywordScore, signature, cancellationToken);
+                    continue;
+                }
+
+                var profileScore = BestProfileSimilarity(signature, _profileSamples);
+                LogScorePeaks(keywordScore, profileScore, now);
+                if (keywordScore < _threshold) continue;
+                if (lastTicks != 0 && now - new DateTimeOffset(lastTicks, TimeSpan.Zero) < _cooldown) continue;
+                if (profileScore >= _profileThreshold)
                 {
                     Interlocked.Exchange(ref _lastDetectionTicks, now.UtcTicks);
-                    _detections.Writer.TryWrite(new WakeWordDetection("hey jarvis", score, now));
+                    JarvisLog.Write("info", "voice.wake.detected",
+                        $"keyword={keywordScore:0.000}; profile={profileScore:0.000}");
+                    _detections.Writer.TryWrite(new WakeWordDetection("hey jarvis", profileScore, now));
                 }
             }
         }
@@ -151,6 +191,151 @@ public sealed class OnnxWakeWordDetector : IWakeWordDetector
         var classifierInputName = _classifierSession.InputMetadata.Single().Key;
         using var classifierOutputs = _classifierSession.Run([NamedOnnxValue.CreateFromTensor(classifierInputName, new DenseTensor<float>(classifierValues, [1, ClassifierFrames, EmbeddingWidth]))]);
         return classifierOutputs.SelectMany(value => value.AsEnumerable<float>()).DefaultIfEmpty().Max();
+    }
+
+    private float[] CurrentSignature()
+    {
+        var values = _featureHistory.TakeLast(ClassifierFrames).SelectMany(value => value).ToArray();
+        return Normalize(values);
+    }
+
+    private float CadenceRms()
+    {
+        var samples = _rawHistory.TakeLast(CadenceSamples);
+        double energy = 0;
+        var count = 0;
+        foreach (var sample in samples)
+        {
+            var normalized = sample / 32768d;
+            energy += normalized * normalized;
+            count++;
+        }
+        return count == 0 ? 0 : (float)Math.Sqrt(energy / count);
+    }
+
+    private async Task ProcessEnrollmentCadenceAsync(float rms, float keywordScore, float[] signature, CancellationToken cancellationToken)
+    {
+        const float speechThreshold = 0.015f;
+        const int endingSilenceCadences = 3;
+        if (rms >= speechThreshold)
+        {
+            _enrollmentSpeechActive = true;
+            _enrollmentSilentCadences = 0;
+            if (_latestEnrollmentSignature is null || keywordScore >= _bestEnrollmentKeywordScore)
+            {
+                _bestEnrollmentKeywordScore = keywordScore;
+                _latestEnrollmentSignature = signature;
+            }
+            return;
+        }
+        if (!_enrollmentSpeechActive || ++_enrollmentSilentCadences < endingSilenceCadences) return;
+
+        _enrollmentSpeechActive = false;
+        _enrollmentSilentCadences = 0;
+        if (_latestEnrollmentSignature is null) return;
+        _pendingEnrollmentSamples.Add(_latestEnrollmentSignature);
+        _latestEnrollmentSignature = null;
+        _bestEnrollmentKeywordScore = 0;
+        var complete = _pendingEnrollmentSamples.Count >= _requiredEnrollmentSamples;
+        EnrollmentProgress?.Invoke(this, new WakeWordEnrollmentProgress(
+            _pendingEnrollmentSamples.Count, _requiredEnrollmentSamples, complete));
+        if (!complete) return;
+
+        _profileSamples.Clear();
+        _profileSamples.AddRange(_pendingEnrollmentSamples);
+        _requiredEnrollmentSamples = 0;
+        if (_profileStore is not null)
+        {
+            await _profileStore.SaveAsync(_profileSamples, cancellationToken);
+        }
+    }
+
+    private void LogScorePeaks(float keywordScore, float profileScore, DateTimeOffset now)
+    {
+        _diagnosticKeywordPeak = Math.Max(_diagnosticKeywordPeak, keywordScore);
+        _diagnosticProfilePeak = Math.Max(_diagnosticProfilePeak, profileScore);
+        var previous = Interlocked.Read(ref _lastDiagnosticTicks);
+        if (previous != 0 && now.UtcTicks - previous < TimeSpan.TicksPerSecond * 2) return;
+        Interlocked.Exchange(ref _lastDiagnosticTicks, now.UtcTicks);
+        JarvisLog.Write("info", "voice.wake.scores",
+            $"keywordPeak={_diagnosticKeywordPeak:0.000}; profilePeak={_diagnosticProfilePeak:0.000}; " +
+            $"keywordThreshold={_threshold:0.000}; profileThreshold={_profileThreshold:0.000}");
+        _diagnosticKeywordPeak = 0;
+        _diagnosticProfilePeak = -1;
+    }
+
+    internal static float BestProfileSimilarity(float[] signature, IEnumerable<float[]> samples) =>
+        samples.Where(sample => sample.Length == signature.Length)
+            .Select(sample => CenteredCosineSimilarity(signature, sample))
+            .DefaultIfEmpty(-1f)
+            .Max();
+
+    internal static float CenteredCosineSimilarity(ReadOnlySpan<float> left, ReadOnlySpan<float> right)
+    {
+        if (left.Length != right.Length || left.IsEmpty) return -1f;
+        var leftMean = 0d;
+        var rightMean = 0d;
+        for (var index = 0; index < left.Length; index++)
+        {
+            leftMean += left[index];
+            rightMean += right[index];
+        }
+        leftMean /= left.Length;
+        rightMean /= right.Length;
+        double dot = 0;
+        double leftMagnitude = 0;
+        double rightMagnitude = 0;
+        for (var index = 0; index < left.Length; index++)
+        {
+            var leftValue = left[index] - leftMean;
+            var rightValue = right[index] - rightMean;
+            dot += leftValue * rightValue;
+            leftMagnitude += leftValue * leftValue;
+            rightMagnitude += rightValue * rightValue;
+        }
+        if (leftMagnitude == 0 || rightMagnitude == 0) return -1f;
+        return (float)(dot / Math.Sqrt(leftMagnitude * rightMagnitude));
+    }
+
+    internal static float CosineSimilarity(ReadOnlySpan<float> left, ReadOnlySpan<float> right)
+    {
+        if (left.Length != right.Length || left.IsEmpty) return -1f;
+        double dot = 0;
+        double leftMagnitude = 0;
+        double rightMagnitude = 0;
+        for (var index = 0; index < left.Length; index++)
+        {
+            dot += left[index] * right[index];
+            leftMagnitude += left[index] * left[index];
+            rightMagnitude += right[index] * right[index];
+        }
+        if (leftMagnitude == 0 || rightMagnitude == 0) return -1f;
+        return (float)(dot / Math.Sqrt(leftMagnitude * rightMagnitude));
+    }
+
+    private static float[] Normalize(float[] values)
+    {
+        var magnitude = Math.Sqrt(values.Sum(value => value * value));
+        return magnitude == 0 ? values : values.Select(value => (float)(value / magnitude)).ToArray();
+    }
+
+    private static bool IsValidProfileSample(float[] sample) =>
+        sample.Length == ClassifierFrames * EmbeddingWidth && sample.All(float.IsFinite);
+
+    public Task BeginEnrollmentAsync(int requiredSamples = 8, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_lifetime.IsCancellationRequested, this);
+        if (requiredSamples is < 3 or > 32) throw new ArgumentOutOfRangeException(nameof(requiredSamples));
+        cancellationToken.ThrowIfCancellationRequested();
+        _pendingEnrollmentSamples.Clear();
+        _requiredEnrollmentSamples = requiredSamples;
+        _enrollmentSpeechActive = false;
+        _enrollmentSilentCadences = 0;
+        _latestEnrollmentSignature = null;
+        _bestEnrollmentKeywordScore = 0;
+        Interlocked.Exchange(ref _lastDetectionTicks, 0);
+        EnrollmentProgress?.Invoke(this, new WakeWordEnrollmentProgress(0, requiredSamples, false));
+        return Task.CompletedTask;
     }
 
     public async IAsyncEnumerable<WakeWordDetection> Detections([EnumeratorCancellation] CancellationToken cancellationToken = default)

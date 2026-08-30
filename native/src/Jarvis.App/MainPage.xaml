@@ -94,6 +94,7 @@
                             <TextBlock Text="COMMAND CHANNEL" Foreground="{StaticResource JarvisCyanBrush}" FontSize="11" CharacterSpacing="120" VerticalAlignment="Center" />
                             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
                                 <Button Content="STOP" Click="StopClicked" />
+                                <Button Content="ENROLL" Click="EnrollClicked" />
                                 <Button Content="VOICE" Click="VoiceClicked" />
                             </StackPanel>
                         </Grid>
@@ -158,6 +159,7 @@
         <Grid Grid.Row="2">
             <TextBlock Text="{Binding Status}" Foreground="{StaticResource JarvisMutedBrush}" FontFamily="Consolas" FontSize="9" VerticalAlignment="Center" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="18" VerticalAlignment="Center">
+                <TextBlock Text="{Binding AudioLevelText}" Foreground="{StaticResource JarvisCyanBrush}" FontFamily="Consolas" FontSize="9" />
                 <TextBlock Text="YOLO · DANGER FULL ACCESS" Foreground="{StaticResource JarvisDangerBrush}" FontFamily="Consolas" FontSize="9" />
                 <TextBlock Text="VOICE VAD · 1000 MS" Foreground="{StaticResource JarvisCyanBrush}" FontFamily="Consolas" FontSize="9" />
             </StackPanel>

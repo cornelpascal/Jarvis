@@ -14,7 +14,8 @@ wake_word:
   enabled: true
   engine: openwakeword
   phrase: "hey jarvis"
-  threshold: 0.5
+  threshold: 0.04
+  profile_threshold: 0.72
   cooldown_ms: 3000
 
 codex:

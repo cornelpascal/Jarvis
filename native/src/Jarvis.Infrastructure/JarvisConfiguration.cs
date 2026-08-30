@@ -13,16 +13,19 @@ public sealed record JarvisConfiguration
     public bool VoiceEnabled { get; init; } = true;
     public string VoiceModel { get; init; } = "gpt-realtime";
     public string TranscriptionModel { get; init; } = "gpt-4o-mini-transcribe";
+    public string SonioxTranscriptionModel { get; init; } = "stt-rt-v5";
     public int SilenceDurationMilliseconds { get; init; } = 1_000;
     public bool WakeWordEnabled { get; init; } = true;
-    public float WakeWordThreshold { get; init; } = 0.5f;
+    public float WakeWordThreshold { get; init; } = 0.04f;
     public int WakeWordCooldownMilliseconds { get; init; } = 5_000;
+    public float WakeWordProfileThreshold { get; init; } = 0.72f;
     public IReadOnlyList<string> ProjectRoots { get; init; } =
         [Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents")];
 
     public string DatabasePath => Path.Combine(DataDirectory, "jarvis.sqlite");
     public string LogsDirectory => Path.Combine(DataDirectory, "logs");
     public string? OpenAiApiKey => ResolveOpenAiApiKey();
+    public string? SonioxApiKey => ResolveApiKey("SONIOX_API_KEY");
 
     public static JarvisConfiguration Load(string? path = null)
     {
@@ -44,6 +47,7 @@ public sealed record JarvisConfiguration
                 WakeWordEnabled = yaml.WakeWord?.Enabled ?? configuration.WakeWordEnabled,
                 WakeWordThreshold = yaml.WakeWord?.Threshold ?? configuration.WakeWordThreshold,
                 WakeWordCooldownMilliseconds = yaml.WakeWord?.CooldownMs ?? configuration.WakeWordCooldownMilliseconds,
+                WakeWordProfileThreshold = yaml.WakeWord?.ProfileThreshold ?? configuration.WakeWordProfileThreshold,
                 ProjectRoots = yaml.Projects?.Roots?.Select(ExpandEnvironmentPath).ToArray() ?? configuration.ProjectRoots,
             };
         }
@@ -74,8 +78,11 @@ public sealed record JarvisConfiguration
     }
 
     private static string? ResolveOpenAiApiKey()
+        => ResolveApiKey("OPENAI_API_KEY");
+
+    private static string? ResolveApiKey(string variableName)
     {
-        var processValue = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var processValue = Environment.GetEnvironmentVariable(variableName);
         if (!string.IsNullOrWhiteSpace(processValue)) return processValue;
 
         foreach (var path in OpenAiEnvironmentFiles().Distinct(StringComparer.OrdinalIgnoreCase))
@@ -91,7 +98,7 @@ public sealed record JarvisConfiguration
                         candidate = candidate[7..].TrimStart();
                     }
                     var separator = candidate.IndexOf('=');
-                    if (separator <= 0 || !candidate[..separator].Trim().Equals("OPENAI_API_KEY", StringComparison.Ordinal))
+                    if (separator <= 0 || !candidate[..separator].Trim().Equals(variableName, StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -141,6 +148,7 @@ public sealed record JarvisConfiguration
         public bool? Enabled { get; init; }
         public float? Threshold { get; init; }
         public int? CooldownMs { get; init; }
+        public float? ProfileThreshold { get; init; }
     }
     private sealed record CodexSection { public int? MaxConcurrentAgents { get; init; } }
     private sealed record ProjectsSection { public List<string>? Roots { get; init; } }

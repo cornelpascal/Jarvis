@@ -62,29 +62,52 @@ public sealed class MarkdownPresenter : StackPanel
         var paragraph = new Paragraph();
         if (inline is not null)
         {
-            foreach (var child in inline)
-            {
-                switch (child)
-                {
-                    case LiteralInline literal:
-                        paragraph.Inlines.Add(new Run { Text = literal.Content.ToString() });
-                        break;
-                    case CodeInline code:
-                        paragraph.Inlines.Add(new Run { Text = code.Content, FontFamily = new FontFamily("Cascadia Mono") });
-                        break;
-                    case LineBreakInline:
-                        paragraph.Inlines.Add(new LineBreak());
-                        break;
-                    default:
-                        paragraph.Inlines.Add(new Run { Text = child.ToString() });
-                        break;
-                }
-            }
+            AppendInlines(paragraph.Inlines, inline);
         }
         if (bold)
         {
             paragraph.FontWeight = Microsoft.UI.Text.FontWeights.SemiBold;
         }
         return new RichTextBlock { FontSize = size, TextWrapping = TextWrapping.Wrap, Blocks = { paragraph } };
+    }
+
+    private static void AppendInlines(InlineCollection target, ContainerInline source)
+    {
+        foreach (var child in source)
+        {
+            switch (child)
+            {
+                case LiteralInline literal:
+                    target.Add(new Run { Text = literal.Content.ToString() });
+                    break;
+                case CodeInline code:
+                    target.Add(new Run { Text = code.Content, FontFamily = new FontFamily("Cascadia Mono") });
+                    break;
+                case LineBreakInline:
+                    target.Add(new LineBreak());
+                    break;
+                case EmphasisInline emphasis:
+                    var emphasisSpan = new Span();
+                    if (emphasis.DelimiterCount >= 2)
+                    {
+                        emphasisSpan.FontWeight = Microsoft.UI.Text.FontWeights.SemiBold;
+                    }
+                    else
+                    {
+                        emphasisSpan.FontStyle = Windows.UI.Text.FontStyle.Italic;
+                    }
+                    AppendInlines(emphasisSpan.Inlines, emphasis);
+                    target.Add(emphasisSpan);
+                    break;
+                case ContainerInline container:
+                    var span = new Span();
+                    AppendInlines(span.Inlines, container);
+                    target.Add(span);
+                    break;
+                default:
+                    target.Add(new Run { Text = child.ToString() ?? string.Empty });
+                    break;
+            }
+        }
     }
 }

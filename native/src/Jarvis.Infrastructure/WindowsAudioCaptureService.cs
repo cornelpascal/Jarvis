@@ -28,15 +28,13 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
     private AudioGraph? _graph;
     private AudioDeviceInputNode? _input;
     private AudioFrameOutputNode? _output;
+    private bool _frameBufferIsFloat;
 
     public bool IsRunning { get; private set; }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (IsRunning)
-        {
-            return;
-        }
+        if (IsRunning) return;
         var encoding = AudioEncodingProperties.CreatePcm(CaptureSampleRate, 1, 16);
         var graphResult = await AudioGraph.CreateAsync(new AudioGraphSettings(Windows.Media.Render.AudioRenderCategory.Speech)
         {
@@ -46,10 +44,17 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
         });
         if (graphResult.Status != AudioGraphCreationStatus.Success)
         {
-            throw new InvalidOperationException($"AudioGraph creation failed: {graphResult.Status}");
+            graphResult = await AudioGraph.CreateAsync(new AudioGraphSettings(Windows.Media.Render.AudioRenderCategory.Media)
+            {
+                QuantumSizeSelectionMode = QuantumSizeSelectionMode.ClosestToDesired,
+            });
+        }
+        if (graphResult.Status != AudioGraphCreationStatus.Success)
+        {
+            throw new InvalidOperationException($"AudioGraph creation failed: {graphResult.Status}. Verify that Windows exposes an active microphone endpoint.");
         }
         _graph = graphResult.Graph;
-        var inputResult = await _graph.CreateDeviceInputNodeAsync(MediaCategory.Speech, encoding);
+        var inputResult = await _graph.CreateDeviceInputNodeAsync(MediaCategory.Speech);
         if (inputResult.Status != AudioDeviceNodeCreationStatus.Success)
         {
             _graph.Dispose();
@@ -58,18 +63,20 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
         }
         _input = inputResult.DeviceInputNode;
         _output = _graph.CreateFrameOutputNode(encoding);
+        _frameBufferIsFloat = _graph.EncodingProperties.Subtype.Equals("Float", StringComparison.OrdinalIgnoreCase);
+        JarvisLog.Write("info", "voice.capture.format",
+            $"graph={_graph.EncodingProperties.Subtype}/{_graph.EncodingProperties.SampleRate}Hz/{_graph.EncodingProperties.ChannelCount}ch/{_graph.EncodingProperties.BitsPerSample}bit; " +
+            $"input={_input.EncodingProperties.Subtype}/{_input.EncodingProperties.SampleRate}Hz/{_input.EncodingProperties.ChannelCount}ch/{_input.EncodingProperties.BitsPerSample}bit; " +
+            $"output={_output.EncodingProperties.Subtype}/{_output.EncodingProperties.SampleRate}Hz/{_output.EncodingProperties.ChannelCount}ch/{_output.EncodingProperties.BitsPerSample}bit");
         _input.AddOutgoingConnection(_output);
         _graph.QuantumStarted += GraphQuantumStarted;
         _graph.Start();
         IsRunning = true;
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken = default)
+    public Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (!IsRunning)
-        {
-            return;
-        }
+        if (!IsRunning) return Task.CompletedTask;
         IsRunning = false;
         if (_graph is not null)
         {
@@ -82,7 +89,7 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
         _input = null;
         _output = null;
         _graph = null;
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     public async IAsyncEnumerable<ProtocolAudioFrame> Frames([EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -97,10 +104,7 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
         _subscribers[id] = channel;
         try
         {
-            await foreach (var frame in channel.Reader.ReadAllAsync(cancellationToken))
-            {
-                yield return frame;
-            }
+            await foreach (var frame in channel.Reader.ReadAllAsync(cancellationToken)) yield return frame;
         }
         finally
         {
@@ -111,17 +115,12 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
     private unsafe void GraphQuantumStarted(AudioGraph sender, object args)
     {
         var frame = _output?.GetFrame();
-        if (frame is null)
-        {
-            return;
-        }
+        if (frame is null) return;
         using (frame)
         {
             var bytes = CopyFrameBytes(frame);
-            if (bytes.Length == 0)
-            {
-                return;
-            }
+            if (_frameBufferIsFloat) bytes = ConvertFloat32ToPcm16(bytes);
+            if (bytes.Length == 0) return;
             var samples = MemoryMarshal.Cast<byte, short>(bytes);
             double energy = 0;
             foreach (var sample in samples)
@@ -131,10 +130,7 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
             }
             var rms = samples.Length == 0 ? 0f : (float)Math.Sqrt(energy / samples.Length);
             var value = new ProtocolAudioFrame(bytes, CaptureSampleRate, 1, rms, DateTimeOffset.UtcNow);
-            foreach (var subscriber in _subscribers.Values)
-            {
-                subscriber.Writer.TryWrite(value);
-            }
+            foreach (var subscriber in _subscribers.Values) subscriber.Writer.TryWrite(value);
         }
     }
 
@@ -146,23 +142,33 @@ public sealed class WindowsAudioCaptureService : IAudioCaptureService
         byteAccess.GetBuffer(out var data, out var capacity);
         var byteLength = checked((int)Math.Min(capacity, buffer.Length));
         byteLength -= byteLength % sizeof(short);
-        if (data is null || byteLength == 0)
-        {
-            return [];
-        }
-
+        if (data is null || byteLength == 0) return [];
         var bytes = new byte[byteLength];
         new ReadOnlySpan<byte>(data, byteLength).CopyTo(bytes);
         return bytes;
     }
 
+    internal static byte[] ConvertFloat32ToPcm16(ReadOnlySpan<byte> source)
+    {
+        var floatLength = source.Length - source.Length % sizeof(float);
+        if (floatLength == 0) return [];
+        var input = MemoryMarshal.Cast<byte, float>(source[..floatLength]);
+        var output = new byte[input.Length * sizeof(short)];
+        var samples = MemoryMarshal.Cast<byte, short>(output.AsSpan());
+        for (var index = 0; index < input.Length; index++)
+        {
+            var value = float.IsFinite(input[index]) ? Math.Clamp(input[index], -1f, 1f) : 0f;
+            samples[index] = value <= -1f
+                ? short.MinValue
+                : (short)Math.Round(value * short.MaxValue);
+        }
+        return output;
+    }
+
     public async ValueTask DisposeAsync()
     {
         await StopAsync();
-        foreach (var subscriber in _subscribers.Values)
-        {
-            subscriber.Writer.TryComplete();
-        }
+        foreach (var subscriber in _subscribers.Values) subscriber.Writer.TryComplete();
         _subscribers.Clear();
     }
 }

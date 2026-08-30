@@ -20,6 +20,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private string _clock = DateTime.Now.ToString("HH:mm:ss");
     private JarvisState _state = JarvisState.IDLE;
     private double _audioLevel;
+    private string _audioLevelText = "MIC · 0.000";
     private readonly DispatcherQueue _dispatcher = DispatcherQueue.GetForCurrentThread();
     private readonly CancellationTokenSource _lifetime = new();
     private JarvisConfiguration? _configuration;
@@ -30,7 +31,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private CodexSessionService? _codex;
     private ITerminalSession? _terminal;
     private WindowsAudioCaptureService? _audio;
-    private RealtimeTranscriptionSession? _transcription;
+    private SonioxTranscriptionSession? _transcription;
     private OnnxWakeWordDetector? _wakeWord;
     private CancellationTokenSource? _voiceLifetime;
     private string? _threadId;
@@ -39,6 +40,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool _turnActive;
     private bool _voiceInitiatedTurn;
     private bool _initialized;
+    private string? _voiceStartupError;
     private readonly AnsiTerminalBuffer _terminalBuffer = new(160_000);
     private readonly WindowsSpeechService _speech = new();
 
@@ -52,6 +54,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public string Clock { get => _clock; set => SetProperty(ref _clock, value); }
     public JarvisState State { get => _state; set => SetProperty(ref _state, value); }
     public double AudioLevel { get => _audioLevel; set => SetProperty(ref _audioLevel, value); }
+    public string AudioLevelText { get => _audioLevelText; set => SetProperty(ref _audioLevelText, value); }
 
     public ObservableCollection<MessageItemViewModel> Messages { get; } = [];
     public ObservableCollection<ActivityItemViewModel> Activities { get; } = [];
@@ -101,20 +104,35 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                     _audio = new WindowsAudioCaptureService();
                     await _audio.StartAsync(_lifetime.Token);
                     var modelDirectory = Path.Combine(AppContext.BaseDirectory, "Assets", "WakeWord");
-                    _wakeWord = new OnnxWakeWordDetector(modelDirectory, _configuration.WakeWordThreshold, _configuration.WakeWordCooldownMilliseconds);
+                    var profilePath = Path.Combine(_configuration.DataDirectory, "voice", "jarvis-wake-profile.json");
+                    _wakeWord = new OnnxWakeWordDetector(
+                        modelDirectory,
+                        _configuration.WakeWordThreshold,
+                        _configuration.WakeWordCooldownMilliseconds,
+                        profilePath,
+                        _configuration.WakeWordProfileThreshold);
+                    _wakeWord.EnrollmentProgress += WakeWordEnrollmentProgress;
                     await _wakeWord.StartAsync(_audio.Frames(_lifetime.Token), _lifetime.Token);
+                    _ = MonitorAudioAsync(_audio.Frames(_lifetime.Token), _lifetime.Token);
                     _ = ConsumeWakeWordAsync(_wakeWord, _lifetime.Token);
+                    LiveTranscript = _wakeWord.IsEnrolled
+                        ? "Personal Hey Jarvis trigger ready"
+                        : "Enroll your Hey Jarvis trigger to enable hands-free voice";
                 }
                 catch (Exception error)
                 {
                     JarvisLog.Write("error", "voice.wake", error.Message, error);
+                    _voiceStartupError = error.Message;
+                    LiveTranscript = "Voice unavailable · no active microphone";
                     _wakeWord = null;
                     if (_audio is not null) await _audio.StopAsync();
                 }
             }
             Messages.Add(new MessageItemViewModel(Guid.NewGuid().ToString(), "assistant",
                 "**Interface online.** Type a directive or activate native voice input."));
-            Status = "NATIVE CORE ONLINE · CODEX READY ON DEMAND";
+            Status = _voiceStartupError is null
+                ? "NATIVE CORE ONLINE · CODEX READY ON DEMAND"
+                : $"NATIVE CORE ONLINE · VOICE UNAVAILABLE · {_voiceStartupError}";
         }
         catch (Exception error)
         {
@@ -226,10 +244,12 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             await StopVoiceAsync();
             return;
         }
-        if (_configuration?.OpenAiApiKey is not { Length: > 0 } apiKey)
+        if (_configuration?.SonioxApiKey is not { Length: > 0 } apiKey)
         {
             State = JarvisState.ERROR;
-            Status = "VOICE UNAVAILABLE · OPENAI_API_KEY IS NOT CONFIGURED";
+            LiveTranscript = "Hey Jarvis detected · ASR provider is not configured";
+            Status = "VOICE UNAVAILABLE · SONIOX_API_KEY IS NOT CONFIGURED";
+            JarvisLog.Write("warning", "voice.activation", "Wake word detected, but SONIOX_API_KEY is not configured.");
             return;
         }
         _voiceLifetime = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
@@ -237,13 +257,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             _audio ??= new WindowsAudioCaptureService();
             await _audio.StartAsync(_voiceLifetime.Token);
-            _transcription = new RealtimeTranscriptionSession(
-                apiKey,
-                _configuration.VoiceModel,
-                _configuration.TranscriptionModel,
-                _configuration.SilenceDurationMilliseconds);
+            _transcription = new SonioxTranscriptionSession(apiKey, _configuration.SonioxTranscriptionModel);
             await _transcription.StartAsync(_audio.Frames(_voiceLifetime.Token), _voiceLifetime.Token);
-            _ = MonitorAudioAsync(_audio.Frames(_voiceLifetime.Token), _voiceLifetime.Token);
             _ = ConsumeTranscriptionAsync(_transcription, _voiceLifetime.Token);
             State = JarvisState.LISTENING;
             LiveTranscript = "Listening…";
@@ -256,6 +271,37 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             State = JarvisState.ERROR;
             Status = $"VOICE ERROR · {FriendlyVoiceError(error.Message)}";
         }
+    }
+
+    public async Task EnrollWakeWordAsync()
+    {
+        if (_wakeWord is null)
+        {
+            State = JarvisState.ERROR;
+            Status = "WAKE ENROLLMENT UNAVAILABLE · MICROPHONE OR MODEL IS NOT READY";
+            return;
+        }
+        await _wakeWord.BeginEnrollmentAsync(cancellationToken: _lifetime.Token);
+        State = JarvisState.LISTENING;
+        LiveTranscript = "Say “Hey Jarvis” naturally · sample 1 of 8";
+        Status = "PERSONAL WAKE ENROLLMENT · PAUSE BETWEEN SAMPLES";
+    }
+
+    private void WakeWordEnrollmentProgress(object? sender, WakeWordEnrollmentProgress progress)
+    {
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (progress.IsComplete)
+            {
+                State = JarvisState.IDLE;
+                LiveTranscript = "Personal Hey Jarvis trigger ready";
+                Status = "PERSONAL WAKE PROFILE SAVED · LISTENING LOCALLY";
+                return;
+            }
+            var next = Math.Min(progress.CollectedSamples + 1, progress.RequiredSamples);
+            LiveTranscript = $"Say “Hey Jarvis” naturally · sample {next} of {progress.RequiredSamples}";
+            Status = $"PERSONAL WAKE ENROLLMENT · {progress.CollectedSamples}/{progress.RequiredSamples} CAPTURED";
+        });
     }
 
     private async Task StopVoiceAsync()
@@ -290,7 +336,11 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         await foreach (var frame in frames.WithCancellation(cancellationToken))
         {
-            _dispatcher.TryEnqueue(() => AudioLevel = frame.Rms);
+            _dispatcher.TryEnqueue(() =>
+            {
+                AudioLevel = frame.Rms;
+                AudioLevelText = $"MIC · {frame.Rms:0.000}";
+            });
         }
     }
 
@@ -310,11 +360,12 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                         State = JarvisState.THINKING;
                         break;
                     case "transcript_delta" when value.Transcript is { Length: > 0 } delta:
-                        LiveTranscript += delta;
+                        LiveTranscript = delta;
                         break;
                     case "transcript" when value.Transcript is not null:
                         LiveTranscript = value.Transcript;
-                        if (TranscriptGate.TryExtractCommand(value.Transcript, out var command))
+                        var command = value.Transcript.Trim();
+                        if (command.Length > 0)
                         {
                             _voiceInitiatedTurn = true;
                             Prompt = command;
@@ -323,7 +374,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                         else
                         {
                             State = JarvisState.LISTENING;
-                            Status = "VOICE IGNORED · SAY JARVIS IN THE COMMAND";
+                            Status = "VOICE IGNORED · EMPTY TRANSCRIPT";
                         }
                         break;
                     case "error":
@@ -365,7 +416,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 if (_voiceLifetime is null && State != JarvisState.SPEAKING)
                 {
+                    LiveTranscript = $"Hey Jarvis detected · {detection.Score:0.00}";
                     Status = $"WAKE WORD · {detection.Score:0.00}";
+                    JarvisLog.Write("info", "voice.activation", $"Wake word propagated to ASR activation with score {detection.Score:0.000}.");
                     await ToggleVoiceAsync();
                 }
             });
@@ -512,6 +565,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
         if (_wakeWord is not null)
         {
+            _wakeWord.EnrollmentProgress -= WakeWordEnrollmentProgress;
             await _wakeWord.DisposeAsync();
         }
         if (_codex is not null)
